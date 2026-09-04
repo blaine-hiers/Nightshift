@@ -1,0 +1,13 @@
+# Cloned target repos — never tracked by Foreman
+workspace/
+
+# SDD plan worktrees and scratch
+.worktrees/
+.superpowers/
+
+# User settings — Doppler is the source of truth for all secrets
+.claude/*.local.json
+
+# Generated secrets — Doppler is the source of truth, .env is an artifact
+.env
+!.env.example

@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foreman — How It Works</title>
+<!-- Built from docs/templates/app-doc-template.html. Edit the <pre class="mermaid"> blocks; keep the shared node classes (actor/service/data/external/decision/allow/deny). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ───────────────────────── Tokens ───────────────────────── */
+  :root {
+    --bg:        #f6f7fb;
+    --bg-elev:   #ffffff;
+    --bg-sunk:   #eef0f6;
+    --fg:        #15171f;
+    --fg-muted:  #5b6070;
+    --line:      #dfe2ec;
+    --accent:    #4f6df5;
+    --accent-fg: #ffffff;
+    --ok:        #1f9d55;
+    --warn:      #d98c07;
+    --danger:    #d7423b;
+    --shadow:    0 1px 2px rgba(20,24,40,.06), 0 8px 24px -12px rgba(20,24,40,.18);
+    --radius:    14px;
+    --font:      "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="auto"] {
+      --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+      --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+      --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+    --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+    --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+  }
+
+  /* ───────────────────────── Base ───────────────────────── */
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; scroll-padding-top:84px; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15.5px/1.6 var(--font); transition:background .25s, color .25s; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code, kbd { font-family:var(--mono); font-size:.88em; background:var(--bg-sunk); border:1px solid var(--line); padding:.1em .4em; border-radius:6px; }
+  h1 { font-size:clamp(1.8rem, 3.5vw, 2.6rem); line-height:1.15; letter-spacing:-.02em; margin:.2rem 0 .5rem; font-weight:800; }
+  h2 { font-size:1.35rem; letter-spacing:-.01em; margin:0 0 .35rem; font-weight:700; display:flex; align-items:center; gap:.55rem; }
+  h2 .num { font-family:var(--mono); font-size:.75rem; color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); padding:.2em .55em; border-radius:999px; }
+  h3 { font-size:1.02rem; margin:1.2rem 0 .4rem; font-weight:650; }
+  p { margin:.25rem 0 .9rem; }
+  .muted { color:var(--fg-muted); }
+
+  /* ───────────────────────── Layout ───────────────────────── */
+  .topbar { position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--line); }
+  .topbar-inner { max-width:1240px; margin:0 auto; padding:.7rem 1.25rem; display:flex; align-items:center; gap:1rem; }
+  .brand { display:flex; align-items:center; gap:.6rem; font-weight:700; }
+  .brand .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 40%, var(--ok))); display:grid; place-items:center; color:var(--accent-fg); font-size:.95rem; }
+  .spacer { flex:1; }
+  .meta-chip { font-family:var(--mono); font-size:.74rem; color:var(--fg-muted); border:1px solid var(--line); padding:.25em .6em; border-radius:999px; background:var(--bg-elev); }
+
+  .theme-toggle { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--bg-elev); color:var(--fg); border-radius:999px; padding:.3rem .4rem .3rem .7rem; cursor:pointer; font:inherit; font-size:.85rem; font-weight:500; }
+  .theme-toggle:hover { border-color:var(--accent); }
+  .theme-toggle .track { width:38px; height:22px; border-radius:999px; background:var(--bg-sunk); border:1px solid var(--line); position:relative; transition:background .25s; }
+  .theme-toggle .knob { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--accent); transition:transform .25s; display:grid; place-items:center; font-size:.6rem; }
+  :root[data-theme="dark"] .theme-toggle .knob { transform:translateX(16px); }
+  @media (prefers-color-scheme: dark) { :root[data-theme="auto"] .theme-toggle .knob { transform:translateX(16px); } }
+
+  .page { max-width:1240px; margin:0 auto; padding:1.5rem 1.25rem 4rem; display:grid; grid-template-columns:230px minmax(0,1fr); gap:2rem; }
+  @media (max-width: 900px) { .page { grid-template-columns:1fr; } .sidebar { display:none; } }
+
+  .sidebar { position:sticky; top:84px; align-self:start; font-size:.88rem; }
+  .sidebar .label { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-muted); margin:0 0 .5rem .6rem; font-weight:600; }
+  .sidebar a { display:block; color:var(--fg-muted); padding:.38rem .6rem; border-left:2px solid transparent; border-radius:0 8px 8px 0; }
+  .sidebar a:hover { color:var(--fg); background:var(--bg-elev); text-decoration:none; }
+  .sidebar a.active { color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+
+  .hero { padding:1rem 0 1.5rem; border-bottom:1px solid var(--line); margin-bottom:1.5rem; }
+  .hero .lede { font-size:1.1rem; color:var(--fg-muted); max-width:70ch; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:.7rem; margin-top:1.2rem; }
+  .fact { background:var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:.7rem .9rem; }
+  .fact .k { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--fg-muted); font-weight:600; }
+  .fact .v { font-weight:600; margin-top:.15rem; font-family:var(--mono); font-size:.9rem; }
+
+  section.card { background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:1.35rem 1.5rem 1.2rem; margin:0 0 1.4rem; box-shadow:var(--shadow); }
+  .diagram { background:var(--bg-sunk); border:1px solid var(--line); border-radius:12px; padding:1rem; overflow-x:auto; margin:.8rem 0; position:relative; }
+  .diagram pre.mermaid { margin:0; display:flex; justify-content:center; }
+  .diagram svg { max-width:100%; height:auto; }
+  .diagram.scroll svg { max-width:none; }   /* add class="diagram scroll" for wide trees: natural size, scroll sideways */
+  .diagram .tools { position:absolute; top:.5rem; right:.5rem; display:flex; gap:.3rem; opacity:0; transition:opacity .15s; }
+  .diagram:hover .tools { opacity:1; }
+  .diagram .tools button { font:inherit; font-size:.72rem; font-family:var(--mono); background:var(--bg-elev); color:var(--fg-muted); border:1px solid var(--line); border-radius:6px; padding:.2em .5em; cursor:pointer; }
+  .diagram .tools button:hover { color:var(--fg); border-color:var(--accent); }
+
+  /* ── Diagram motion ─────────────────────────────────────────────────
+     Two effects, both gated by :root[data-motion="on"] and by the diagram
+     being on screen (.live, set by an IntersectionObserver):
+       1. reveal — nodes, then edges, fade/scale in with a per-element
+          stagger (--i set by JS in draw order);
+       2. flow — dashes travel along every edge in its source→target
+          direction, so the arrows read as moving.
+     Mermaid's own <style> uses #id-prefixed selectors, so dash rules need
+     !important to win. Node <g>s carry an attribute transform; animating
+     the separate `scale` property composes with it instead of clobbering it. */
+  :root[data-motion="on"] .diagram.armed svg .unit { opacity:0; }
+  :root[data-motion="on"] .diagram.armed.live svg .unit {
+    animation: reveal .5s cubic-bezier(.2,.7,.2,1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+    transform-box: fill-box; transform-origin: center;
+  }
+  /* edges are reveal units too, so they get both animations in one declaration
+     (a second `animation` rule would replace the first, not add to it) */
+  :root[data-motion="on"] .diagram.armed.live svg .unit:is(.flowchart-link, .messageLine0, .messageLine1, .transition, .relationshipLine) {
+    stroke-dasharray: 9 5 !important;
+    animation: reveal .5s cubic-bezier(.2,.7,.2,1) both, flow 1.1s linear infinite;
+    animation-delay: calc(var(--i, 0) * 45ms), 0s;
+  }
+  :root[data-motion="on"] .diagram.armed.live svg .unit:is(.edge-pattern-dotted, .messageLine1) { stroke-dasharray: 2 5 !important; }
+  @keyframes reveal { from { opacity:0; scale:.94; } to { opacity:1; scale:1; } }
+  @keyframes flow { to { stroke-dashoffset: -28; } }
+  .motion-toggle { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--bg-elev); color:var(--fg); border-radius:999px; padding:.3rem .7rem; cursor:pointer; font:inherit; font-size:.85rem; font-weight:500; margin-right:.5rem; }
+  .motion-toggle:hover { border-color:var(--accent); }
+  .motion-toggle .dot { width:8px; height:8px; border-radius:50%; background:var(--fg-muted); }
+  :root[data-motion="on"] .motion-toggle .dot { background:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  @media (prefers-reduced-motion: reduce) { :root[data-motion="on"] .diagram svg * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+  .caption { font-size:.85rem; color:var(--fg-muted); margin:-.3rem 0 .6rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:.4rem .9rem; font-size:.8rem; color:var(--fg-muted); margin-top:.4rem; }
+  .legend span { display:inline-flex; align-items:center; gap:.35rem; }
+  .legend i { width:.85em; height:.85em; border-radius:3px; border:1px solid var(--line); display:inline-block; }
+
+  .callout { border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); padding:.7rem .95rem; border-radius:0 10px 10px 0; margin:.9rem 0; }
+  .callout.warn { border-color:var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent); }
+  .callout.danger { border-color:var(--danger); background:color-mix(in srgb, var(--danger) 9%, transparent); }
+  .callout strong { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.15rem; }
+
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
+  .tile { background:var(--bg-sunk); border:1px solid var(--line); border-radius:10px; padding:.8rem .95rem; }
+  .tile h4 { margin:0 0 .3rem; font-size:.95rem; }
+  .tile ul { margin:.2rem 0 0 1.1rem; padding:0; }
+
+  table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; margin:.6rem 0 .4rem; }
+  th, td { padding:.55rem .7rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-muted); font-weight:600; background:var(--bg-sunk); white-space:nowrap; }
+  th:first-child { border-radius:8px 0 0 0; } th:last-child { border-radius:0 8px 0 0; }
+  tr:last-child td { border-bottom:none; }
+  .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  .yes, .no, .cond { display:inline-grid; place-items:center; width:1.55em; height:1.55em; border-radius:6px; font-weight:700; font-size:.85em; }
+  .yes { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .no { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .cond { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .role { display:inline-block; font-family:var(--mono); font-size:.78rem; padding:.15em .5em; border-radius:6px; border:1px solid var(--line); background:var(--bg-elev); }
+
+  .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:.15em .55em; border-radius:999px; letter-spacing:.02em; }
+  .badge.ok { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .badge.warn { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .badge.danger { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .badge.info { background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+
+  .changelog li { margin-bottom:.35rem; }
+  .changelog time { font-family:var(--mono); font-size:.8rem; color:var(--fg-muted); margin-right:.5rem; }
+
+  footer { max-width:1240px; margin:0 auto; padding:0 1.25rem 2rem; color:var(--fg-muted); font-size:.82rem; }
+
+  @media print {
+    .topbar, .sidebar, .diagram .tools { display:none !important; }
+    .diagram svg .unit { opacity:1 !important; animation:none !important; }
+    .diagram svg :is(.flowchart-link, .messageLine0, .messageLine1, .transition, .relationshipLine) { animation:none !important; }
+    .page { grid-template-columns:1fr; }
+    section.card { box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="logo">🐛</span> Foreman</div>
+    <span class="meta-chip">your-org/Foreman</span>
+    <span class="meta-chip">Linear · Engineering</span>
+    <div class="spacer"></div>
+    <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="true" title="Toggle diagram motion (m)">
+      <span class="dot"></span><span id="motionLabel">Motion on</span>
+    </button>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme (t)">
+      <span id="themeLabel">Auto</span>
+      <span class="track"><span class="knob"></span></span>
+    </button>
+  </div>
+</div>
+
+<div class="page">
+  <aside class="sidebar">
+    <p class="label">On this page</p>
+    <nav id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>How Foreman works</h1>
+      <p class="lede">Foreman is not a software project. It's the working environment that turns <strong>Linear issues</strong> into <strong>pull requests against other repos</strong>. The one thing to understand first: Linear is the system of record — work starts from a Linear issue and ends with that issue updated, and nothing here tracks the target repos' code, only the skills and docs that encode the workflow.</p>
+      <div class="facts">
+        <div class="fact"><div class="k">Tracker</div><div class="v">linear.app/your-workspace</div></div>
+        <div class="fact"><div class="k">Issue key</div><div class="v">ENG-NN</div></div>
+        <div class="fact"><div class="k">Entry points</div><div class="v">CLAUDE.md · /queue-drain · codex-dispatch</div></div>
+        <div class="fact"><div class="k">Target repos</div><div class="v">workspace/&lt;repo&gt;</div></div>
+        <div class="fact"><div class="k">Secrets</div><div class="v">Doppler · dev only</div></div>
+        <div class="fact"><div class="k">Last reviewed</div><div class="v">2026-09-01</div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 1 · Big picture ═══════════════════════ -->
+    <section class="card" id="overview">
+      <h2><span class="num">01</span> Big picture</h2>
+      <p class="muted">Three systems, one direction of flow. Linear says what to do, Foreman does it in a throwaway worktree, GitHub is where the fix lands — and the trail is written back to Linear.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TB
+    H["👤 Human<br/>files / triages issues"] --> LIN
+    subgraph LIN["📋 Linear — system of record"]
+        I["Issue<br/>description = the prompt<br/>Type · Repo/ · Tier/ · Security"]
+        ST["Status + comment trail"]
+    end
+    subgraph BS["🛠️ Foreman"]
+        CO["Coordinator<br/>main Claude session"]
+        SK["Skills<br/>.claude/skills/"]
+        SUB["Claude subagents<br/>haiku · sonnet · opus · fable"]
+        CDX["OpenAI Codex CLI<br/>Tier/Codex · sandboxed · no network"]
+        WT["workspace/&lt;repo&gt;/.worktrees/ENG-NN"]
+        RUN["docs/runs/<br/>run reports"]
+    end
+    subgraph GH["🐙 GitHub — target repo"]
+        BR["Branch = gitBranchName"]
+        PR["PR (ready) → auto-review → merged"]
+    end
+    DOP[("🔐 Doppler<br/>dev config")]
+    I -->|get_issue| CO
+    SK --> CO
+    CO -->|git worktree add| WT
+    CO -->|dispatch, per-ticket model| SUB
+    CO -->|"codex exec, Tier/Codex only"| CDX
+    SUB -->|edits · tests| WT
+    CDX -->|"edits · tests · commits<br/>never pushes"| WT
+    DOP -.->|env-sync, opt-in| WT
+    WT -->|push · gh pr create| BR --> PR
+    CO -->|save_comment · status| ST
+    CO -->|retro| RUN
+    PR -.->|merged + verified ⇒ Done| ST
+
+    class H actor
+    class I,ST,BR,PR external
+    class CO,SK,SUB service
+    class CDX external
+    class WT,RUN,DOP data
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>Inputs</h4><ul><li>Linear issues in <code>Todo</code> (or named in conversation)</li><li>Target repo clones under <code>workspace/</code></li><li>Doppler <code>dev</code> secrets — only when a ticket needs live calls</li></ul></div>
+        <div class="tile"><h4>Outputs</h4><ul><li>PRs against target repos, referencing <code>ENG-NN</code></li><li>Linear comments: root cause, repro, PR link</li><li>Run reports in <code>docs/runs/</code></li><li>Skill improvements — the commits this repo is made of</li></ul></div>
+        <div class="tile"><h4>Depends on</h4><ul><li>Linear MCP (<code>mcp__claude_ai_Linear__*</code>)</li><li><code>gh</code> CLI with push access (or fork)</li><li>Doppler CLI, directory-scoped</li><li><code>codex</code> CLI, logged in — only for <code>Tier/Codex</code> tickets</li></ul></div>
+        <div class="tile"><h4>Never tracked here</h4><ul><li><code>workspace/</code> — gitignored</li><li>Any target repo code</li><li>Any <code>.env</code> value</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 2 · Components ═══════════════════════ -->
+    <section class="card" id="components">
+      <h2><span class="num">02</span> Components &amp; responsibilities</h2>
+      <p class="muted">Who does what. The split that matters most: the <strong>coordinator</strong> owns every Linear write and every worktree; <strong>subagents</strong> implement and review and never touch Linear.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Lives in</th><th>Responsibility</th><th>Talks to</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Coordinator</strong></td><td>main Claude session</td><td>Reads issues, creates worktrees, dispatches subagents, moves status, comments, tears down, writes the run report</td><td>Linear, git, subagents</td></tr>
+            <tr><td><strong>Implementer subagent</strong></td><td><code>Agent</code> with <code>model:</code> from <code>Tier/</code></td><td>Reproduce → fix → run the target repo's tests in its worktree; report back</td><td>its worktree only</td></tr>
+            <tr><td><strong>Codex implementer</strong></td><td><code>codex exec</code> in the worktree, <code>Tier/Codex</code> only</td><td>Implement → run the repo's tests → commit to the branch. Sandboxed <code>workspace-write</code>, network off; never pushes, never sees Linear or GitHub</td><td>its worktree only</td></tr>
+            <tr><td><strong>Reviewer subagent</strong></td><td>fresh <code>Agent</code> per diff</td><td>Sees only diff + issue + plan; returns correctness findings. Same reviewer for Claude and Codex diffs</td><td>coordinator</td></tr>
+            <tr><td><strong>codex-dispatch</strong></td><td><code>.claude/skills/codex-dispatch/</code></td><td>The Linear lifecycle around a Codex run: pre-flight, sandboxed exec, verify + secret scan, Claude pushes and opens the PR, reviewer, one fix round by session UUID, failure lanes</td><td>codex, git/gh, Linear (via coordinator)</td></tr>
+            <tr><td><strong>codex</strong> (third-party)</td><td><code>.claude/skills/codex/</code></td><td>CLI mechanics only: model/effort tables, timeout table, stdin rule. Its interactive rules (AskUserQuestion, <code>resume --last</code>) do <em>not</em> apply under codex-dispatch</td><td>—</td></tr>
+            <tr><td><strong>queue-drain</strong></td><td><code>.claude/skills/queue-drain/</code></td><td>The batch loop: sweep → fetch → triage → plan gate → fan-out → verify → close → retro</td><td>everything above</td></tr>
+            <tr><td><strong>Review skills</strong></td><td><code>variant-analysis</code>, <code>differential-review</code>, <code>fp-check</code>, <code>semgrep</code></td><td>Find sibling bugs, security-review diffs, verify suspected bugs, scan</td><td>worktree</td></tr>
+            <tr><td><strong>Workflow skills</strong></td><td><code>karpathy-guidelines</code>, <code>resolving-merge-conflicts</code>, <code>find-skills</code>, <code>design-doc-mermaid</code></td><td>Behavioural rules, conflict resolution, skill discovery, diagrams</td><td>—</td></tr>
+            <tr><td><strong>sweep.sh</strong></td><td><code>queue-drain/scripts/</code></td><td>Classify every worktree REMOVABLE / BLOCKED before a batch</td><td>git, <code>gh</code></td></tr>
+            <tr><td><strong>docs/</strong></td><td><code>workspace.md</code>, <code>skills.md</code>, <code>runs/</code></td><td>Mechanics, skill inventory and provenance, run reports</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 3 · Working one ticket ═══════════════════════ -->
+    <section class="card" id="ticket">
+      <h2><span class="num">03</span> Working one ticket — the main path</h2>
+      <p class="muted">The per-issue loop from <code>CLAUDE.md › Working an Issue</code>. Entry is decided by <em>provenance</em>, not count: tickets you named in conversation are hand-dispatched; anything pulled off the Todo column goes through the drain.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    S(["Issue picked up"]) --> Prov{"Where did it come from?"}
+    Prov -->|"named in conversation, ≤ ~4"| Hand["Hand dispatch<br/>one subagent per ticket<br/>model = Tier/ label"]
+    Prov -->|"off the Todo column, or > ~4"| Drain["/queue-drain<br/>§ 06"]
+    Hand --> Get
+    Drain --> Get
+    Get["get_issue<br/>description = prompt · comments · gitBranchName"] --> Work{"Workable with zero questions?"}
+    Work -->|no| NI["save_comment what's missing<br/>→ Needs Input"]
+    Work -->|yes| IP["→ In Progress · assign"]
+    IP --> Pinn{"Repo/Managed-Platform?"}
+    Pinn -->|yes| Direct["Work the .builder install directly<br/>no clone · no worktree · no PR"] --> Trail
+    Pinn -->|no| Clone{"workspace/&lt;repo&gt; exists?"}
+    Clone -->|no| DoClone["git clone once → base clone<br/>doppler setup -c dev · gc.auto=0"] --> WT
+    Clone -->|yes| WT["git fetch origin<br/>git worktree add .worktrees/ENG-NN<br/>-b &lt;gitBranchName&gt; origin/main"]
+    WT --> Boot["Repo bootstrap · read its CLAUDE.md"]
+    Boot --> Cdx{"Tier/Codex?"}
+    Cdx -->|"yes — no env-sync, ever"| CdxRun["codex-dispatch<br/>Codex implements + commits<br/>see § 03 · Codex path"]
+    CdxRun --> PR
+    Cdx -->|no| Env{"Needs live calls?"}
+    Env -->|yes| Sync["npm run env-sync · dev only"] --> Repro
+    Env -->|no| Repro["Reproduce"]
+    Repro --> Fix["Fix · run the repo's own tests"]
+    Fix --> Tier{"Cheaper tier failed?"}
+    Tier -->|yes| Esc["Escalate model<br/>update Tier/ label"] --> Fix
+    Tier -->|no| Stall{"Stalled on something external?"}
+    Stall -->|yes| BL["save_comment what + who owns it<br/>→ Blocked · keep worktree"]
+    Stall -->|no| PR["Commit + push from worktree<br/>gh pr create · ENG-NN in title"]
+    PR --> Trail["save_comment root cause + PR link<br/>→ In Review"]
+    Trail --> Merge{"Merged + verified?"}
+    Merge -->|"review bounces"| Fix
+    Merge -->|yes| Done["→ Done<br/>git worktree remove — same step"]
+    Done --> End(["Finished"])
+    Fix -. "new work found" .-> New["File a separate Linear issue<br/>stay on scope"]
+
+    class S,End allow
+    class Prov,Work,Pinn,Clone,Cdx,Env,Tier,Stall,Merge decision
+    class NI,BL deny
+    class Hand,Drain,Boot,Repro,Fix,Esc,Direct,CdxRun service
+    class Get,IP,Trail,Done,New external
+    class DoClone,WT,Sync,PR data
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <h3>Sequence view — hand dispatch of one ticket</h3>
+      <p class="caption">Who calls whom. Note the coordinator does every Linear write and creates the worktree <em>before</em> the subagent exists.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor H as Human
+    participant C as Coordinator
+    participant L as Linear
+    participant G as git / gh
+    participant A as Subagent
+    H->>C: "work ENG-42"
+    C->>L: get_issue ENG-42
+    L-->>C: description, labels, gitBranchName
+    C->>L: save_issue → In Progress
+    C->>G: worktree add .worktrees/ENG-42 -b dev/ENG-42-…
+    C->>A: Agent(model: tier) — id, description, branch, worktree path
+    A->>G: reproduce · fix · test · commit · push
+    A-->>C: report (root cause, tests, self-check)
+    C->>G: gh pr create … ENG-42<br/>gh pr review (auto-review)
+    C->>L: save_comment (root cause + PR) · → In Review
+    C-->>H: relay result
+    H->>G: review · merge
+    C->>L: → Done
+    C->>G: worktree remove · prune
+        </pre>
+      </div>
+
+      <h3 id="codex-path">Codex path — <code>Tier/Codex</code> tickets</h3>
+      <p class="caption">Same ticket loop, different implementer. <strong>Codex writes the code and commits; Claude does everything else</strong> — every Linear write, the worktree, the push, the PR, the review. Codex runs sandboxed with network off, so its only way out of the worktree is Claude's push, and that push is gated by a secret scan. Opt-in only: a ticket gets <code>Tier/Codex</code> because a human asked for Codex, never as a cost/difficulty derivation.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    S(["Tier/Codex ticket, worktree exists"]) --> Pre["Pre-flight, once per run<br/>codex --version · codex login status"]
+    Pre --> PreOK{"both succeed?"}
+    PreOK -->|no| Halt["STOP the whole dispatch<br/>report — don't fail ticket by ticket"]
+    PreOK -->|yes| Guard{"Repo/Managed-Platform or<br/>needs live calls / .env?"}
+    Guard -->|yes| Mis["Mis-tiered — fix labels<br/>via triage judgment"]
+    Guard -->|no| Model["Model + effort<br/>'codex: model/effort' line in description<br/>else gpt-5.6-terra / high"]
+    Model --> Run["codex exec — background<br/>--sandbox workspace-write · network_access=false<br/>--full-auto · -C worktree · timeout min(effort, budget)<br/>prompt = description verbatim + conventions + contract"]
+    Run --> UUID["Capture session UUID<br/>anchored on 'session id:' line"]
+    UUID --> Ver{"≥1 commit on branch<br/>AND repo tests pass when Claude runs them<br/>AND -o output non-empty?"}
+    Ver -->|"no · exit 124 · empty output"| Retry{"first failure?"}
+    Retry -->|yes| Run
+    Retry -->|no| BL["→ Blocked · last ~20 log lines<br/>waiting on human to re-tier / re-scope"]
+    Ver -->|yes| Scan{"Secret scan of the diff<br/>dotfiles · config · credential-shaped strings"}
+    Scan -->|suspicious| BL2["Do not push<br/>→ Blocked with the finding"]
+    Scan -->|clean| Push["Claude pushes from the worktree<br/>gh pr create --head branch · ready for review<br/>body: 'Implementation by OpenAI Codex (model/effort, session uuid);<br/>coordinated and reviewed by Claude.'"]
+    Push --> Rev["Fresh reviewer subagent<br/>sonnet · opus if Security<br/>posts gh pr review"]
+    Rev --> Verdict{"changes requested?"}
+    Verdict -->|no| Close["save_comment: root cause · PR · verdict ·<br/>session UUID · model/effort<br/>→ In Review"]
+    Verdict -->|"yes — first time"| Fix["codex exec … resume &lt;uuid&gt;<br/>never --last · same model/effort/sandbox/worktree<br/>prompt = findings, file:line"]
+    Fix --> Ver
+    Verdict -->|"yes — second time"| BL3["Comment unresolved list on PR<br/>→ Blocked · keep worktree · stop<br/>no second fix round"]
+    Close --> Done["Done when merged + verified<br/>worktree removed same step"]
+
+    class S allow
+    class PreOK,Guard,Ver,Retry,Scan,Verdict decision
+    class Halt,Mis,BL,BL2,BL3 deny
+    class Pre,Model,Run,UUID,Rev,Fix service
+    class Push data
+    class Close,Done external
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>What Codex may do</h4><ul><li>Read anything in its worktree (<code>workspace-write</code> limits writes, not reads — so no <code>.env</code> may be there)</li><li>Edit, run the repo's tests, commit to the current branch</li></ul></div>
+        <div class="tile"><h4>What Codex may never do</h4><ul><li>Reach the network (<code>network_access=false</code> pinned on the command line)</li><li>Push, open a PR, or touch Linear</li><li>Be resumed with <code>--last</code> — parallel runs would cross-resume</li></ul></div>
+        <div class="tile"><h4>Budget</h4><ul><li>30 min wall-clock per ticket — <span class="badge warn">provisional</span>, first real run is attended and measured</li><li>2 attempts (fresh session each); the fix round is separate and comes out of the review</li><li>Max 2 Codex tickets concurrent, each backgrounded</li></ul></div>
+        <div class="tile"><h4>Attribution</h4><ul><li>PR body line + Linear close-out comment are the record that Codex authored it</li><li>If Claude ends up writing code to rescue the ticket, say so in both places and reconsider the tier label</li></ul></div>
+      </div>
+
+      <h3>Sequence view — Codex dispatch of one ticket</h3>
+      <p class="caption">Compare with the hand-dispatch sequence above: the subagent is replaced by a sandboxed CLI, and the coordinator picks up the push, the PR, and the fix-round relay that a Claude subagent would have done itself.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor H as Human
+    participant C as Coordinator (Claude)
+    participant L as Linear
+    participant G as git / gh
+    participant X as Codex CLI (sandboxed)
+    participant R as Reviewer subagent
+    H->>C: "have Codex do ENG-42" (Tier/Codex)
+    C->>X: codex --version · login status (once per run)
+    C->>L: get_issue ENG-42
+    L-->>C: description, labels, gitBranchName
+    C->>L: save_issue → In Progress
+    C->>G: worktree add .worktrees/ENG-42 -b dev/ENG-42-…
+    C->>X: codex exec -C worktree, no network, description verbatim + contract
+    X->>G: edit · run tests · commit (no push)
+    X-->>C: exit status · session UUID · -o output
+    C->>G: verify commits · run tests · secret-scan diff
+    C->>G: push · gh pr create --head (ready, Codex attribution)
+    C->>R: Agent(model: sonnet | opus if Security) — PR review template
+    R->>G: gh pr review
+    opt review requests changes — once
+        C->>X: codex exec … resume &lt;uuid&gt; "findings, file:line"
+        X->>G: fix · test · commit
+        C->>G: re-verify · push
+        C->>R: review again
+        R->>G: gh pr review
+    end
+    C->>L: save_comment (root cause · PR · verdict · UUID · model/effort) · → In Review
+    C-->>H: relay result
+    H->>G: review · merge
+    C->>L: → Done
+    C->>G: worktree remove · prune
+        </pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 4 · Permissions ═══════════════════════ -->
+    <section class="card" id="permissions">
+      <h2><span class="num">04</span> Permissions &amp; access model</h2>
+      <p class="muted">Who may write where. Foreman has no auth system of its own — the access model is a set of rules in <code>CLAUDE.md</code>, and the matrix below is what they add up to.</p>
+
+      <h3>Roles</h3>
+      <div class="grid2">
+        <div class="tile"><h4><span class="role">human</span></h4><p class="muted" style="margin:0">Files and sharpens issues, approves plans, reviews and merges PRs, unsticks <code>Needs Input</code>.</p></div>
+        <div class="tile"><h4><span class="role">coordinator</span></h4><p class="muted" style="margin:0">The main session. Only principal that writes to Linear or creates/removes worktrees.</p></div>
+        <div class="tile"><h4><span class="role">subagent</span></h4><p class="muted" style="margin:0">Implementer or reviewer. Lives inside one worktree; reports back as text.</p></div>
+        <div class="tile"><h4><span class="role">codex</span></h4><p class="muted" style="margin:0">OpenAI Codex CLI as implementer on <code>Tier/Codex</code> tickets. Sandboxed to one worktree, network off; commits but never pushes. Strictly less than a subagent.</p></div>
+        <div class="tile"><h4><span class="role">sweep.sh</span></h4><p class="muted" style="margin:0">Script. Classifies worktrees; deletes only with <code>--remove</code> and only REMOVABLE ones.</p></div>
+      </div>
+
+      <h3>Permission matrix</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>human</th><th>coordinator</th><th>subagent</th><th>codex</th><th>sweep.sh</th><th>Enforced in</th></tr></thead>
+          <tbody>
+            <tr><td>Read Linear issues / projects</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="cond">¹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>CLAUDE.md › Rules of Engagement 1</td></tr>
+            <tr><td>Create issue · comment · move status</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>queue-drain › "subagents never write to Linear"</td></tr>
+            <tr><td>Close/cancel/reassign someone else's issue</td><td><span class="yes">✓</span></td><td><span class="cond">²</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Rules of Engagement 4</td></tr>
+            <tr><td>Clone base repo · create worktree</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Multiple Tickets at Once</td></tr>
+            <tr><td>Commit · push · open PR (ready)</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="cond">³</span></td><td><span class="cond">¹⁰</span></td><td><span class="no">✗</span></td><td>Git Discipline</td></tr>
+            <tr><td>Post auto-review on the PR</td><td><span class="yes">✓</span></td><td><span class="cond">⁴</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>queue-drain › stage 6</td></tr>
+            <tr><td>Merge PR</td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Rules of Engagement 4 — ask first</td></tr>
+            <tr><td>Remove a worktree</td><td><span class="yes">✓</span></td><td><span class="cond">⁵</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="cond">⁶</span></td><td>workspace.md › Teardown</td></tr>
+            <tr><td>Sync <code>.env</code> from Doppler (dev)</td><td><span class="yes">✓</span></td><td><span class="cond">⁷</span></td><td><span class="cond">⁷</span></td><td><span class="cond">¹¹</span></td><td><span class="no">✗</span></td><td>workspace.md › Secrets</td></tr>
+            <tr><td>Touch <code>prd</code> config</td><td><span class="cond">⁸</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>"dev only. Never prd."</td></tr>
+            <tr><td>Hold <code>DOPPLER_TOKEN</code></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>directory scope keeps it in the CLI store</td></tr>
+            <tr><td>Commit to Foreman itself</td><td><span class="yes">✓</span></td><td><span class="cond">⁹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Git Discipline</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.85rem">
+        ¹ Only what the coordinator pastes into the prompt — issue id, description, branch, worktree path. &nbsp;
+        ² Only within work it was asked to do; otherwise ask. &nbsp;
+        ³ From its own worktree only; PRs open ready for review and get an automatic GitHub review; draft only when human-only work is still owed. &nbsp;
+        ⁴ Via a fresh reviewer subagent dispatched by the coordinator, once per PR at open. &nbsp;
+        ⁵ Only when the issue reaches Done — never at In Review. &nbsp;
+        ⁶ Only REMOVABLE trees (clean, pushed, PR merged) and only with <code>--remove</code>. &nbsp;
+        ⁷ Opt-in, inside the worktree, only when the ticket drives live calls. &nbsp;
+        ⁸ Outside this workflow entirely. &nbsp;
+        ⁹ Skills and docs only; never <code>workspace/</code>. &nbsp;
+        ¹⁰ Commit only, to the current branch of its own worktree; the push and PR are the coordinator's, and only after a secret scan of the diff. &nbsp;
+        ¹¹ Never — a <code>.env</code> in a Codex worktree is readable by Codex, and a ticket that needs one is mis-tiered.
+      </p>
+
+      <h3>Authorization decision — "can I write this?"</h3>
+      <p class="caption">The order the rules bite in. If this diagram and <code>CLAUDE.md</code> disagree, <code>CLAUDE.md</code> wins — fix the diagram.</p>
+      <div class="diagram scroll">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    IN(["Proposed write"]) --> WHO{"Who is acting?"}
+    WHO -->|codex| CDXT{"Target?"}
+    CDXT -->|"its own worktree — edit, test, commit"| OK0(["Allow"])
+    CDXT -->|"push · PR · Linear · network · .env"| D0["Deny — Claude pushes after a secret scan"]
+    WHO -->|subagent| SUBT{"Target?"}
+    SUBT -->|"Linear"| D1["Deny — report to coordinator"]
+    SUBT -->|"a worktree not its own"| D2["Deny — one subagent = one worktree"]
+    SUBT -->|"its own worktree"| OK1(["Allow"])
+    WHO -->|coordinator| TGT{"Target?"}
+    TGT -->|"Linear"| SCOPE{"Within work you were asked to do?"}
+    SCOPE -->|"yes — create, comment, status"| OK2(["Allow"])
+    SCOPE -->|"no — close/cancel/reassign others' issues"| ASK["Ask the human first"]
+    TGT -->|"git"| CWD{"Which repo is cwd in?"}
+    CWD -->|"Foreman root"| BSR{"Touching workspace/?"}
+    BSR -->|yes| D3["Deny — .gitignore is broken; fix that first"]
+    BSR -->|no| OK3(["Allow — skills/docs commits"])
+    CWD -->|"base clone"| D4["Deny — never work in the base clone"]
+    CWD -->|"worktree"| OK4(["Allow — commit, push, open PR"])
+    TGT -->|"merge PR"| ASK
+    TGT -->|"remove worktree"| DONE{"Issue is Done?"}
+    DONE -->|no| D5["Deny — In Review still needs the checkout"]
+    DONE -->|yes| DIRTY{"worktree remove refuses?"}
+    DIRTY -->|"dirty"| D6["Stop and report — never rm -rf"]
+    DIRTY -->|"clean"| OK5(["Allow"])
+    TGT -->|"secrets"| CFG{"Doppler config?"}
+    CFG -->|prd| D7["Deny — stop and fix the scope"]
+    CFG -->|dev| OK6(["Allow — env-sync in the worktree"])
+
+    class IN actor
+    class WHO,CDXT,SUBT,TGT,SCOPE,CWD,BSR,DONE,DIRTY,CFG decision
+    class D0,D1,D2,D3,D4,D5,D6,D7 deny
+    class ASK service
+    class OK0,OK1,OK2,OK3,OK4,OK5,OK6 allow
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="callout warn">
+        <strong>Where it's NOT enforced</strong>
+        None of this is enforced by tooling — it's convention in <code>CLAUDE.md</code> read by the model each session. The only mechanical guards are <code>git worktree remove</code> refusing a dirty tree, <code>.gitignore</code> excluding <code>workspace/</code>, Doppler's directory scope, and — for Codex — the CLI's own sandbox (<code>workspace-write</code>, <code>network_access=false</code>) plus <code>timeout</code>. <code>git-guardrails-claude-code</code> is installed as a skill but its hook is <em>not</em> active (its default list blocks <code>git push</code>, which this workflow needs).
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 5 · Data ═══════════════════════ -->
+    <section class="card" id="data">
+      <h2><span class="num">05</span> Data &amp; state</h2>
+      <p class="muted">The entities that matter: the Linear issue, its labels, and the worktree that mirrors it on disk.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+erDiagram
+    PROJECT ||--o{ ISSUE : "groups (optional)"
+    ISSUE ||--|| TYPE_LABEL : "Bug | Feature | Improvement"
+    ISSUE ||--|| REPO_LABEL : "Repo/… (open set)"
+    ISSUE ||--|| TIER_LABEL : "Tier/Haiku|Sonnet|Opus|Fable|Codex"
+    ISSUE ||--o| SECURITY_LABEL : optional
+    ISSUE ||--o{ COMMENT : "trail"
+    ISSUE ||--o| WORKTREE : "while In Progress / Blocked / In Review"
+    WORKTREE ||--o| PR : "ready + auto-review"
+    WORKTREE ||--o| ENV_FILE : "only if live calls, never with Codex"
+    WORKTREE ||--o| CODEX_SESSION : "Tier/Codex only"
+    BASE_CLONE ||--o{ WORKTREE : contains
+    ISSUE {
+        string id "ENG-NN"
+        string status
+        string description "the prompt"
+        string gitBranchName
+    }
+    WORKTREE {
+        path dir ".worktrees/ENG-NN"
+        string branch "= gitBranchName"
+    }
+    BASE_CLONE {
+        path dir "workspace/repo"
+        string doppler_scope "project + dev"
+        int gc_auto "0"
+    }
+    CODEX_SESSION {
+        uuid session_id "resume by this, never --last"
+        string model "gpt-5.6-terra default"
+        string effort "high default"
+        path output "scratchpad/codex-ENG-NN.out"
+    }
+        </pre>
+      </div>
+
+      <h3>Lifecycle of an issue</h3>
+      <p class="caption"><code>Needs Input</code> and <code>Blocked</code> are off-ramps, not stops. Never leave a stalled issue in Todo or In Progress.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Backlog
+    support inboxTicket --> Backlog : inbox
+    Backlog --> Todo : Repo/ + Tier/ set, workable
+    Todo --> InProgress : agent starts · worktree created
+    Todo --> NeedsInput : ask isn't a workable prompt
+    NeedsInput --> Todo : human edits description
+    InProgress --> Blocked : external dependency · keep worktree
+    Blocked --> InProgress : dependency resolved
+    InProgress --> InReview : PR open · comment posted
+    InReview --> InProgress : review bounces
+    InReview --> Done : merged + verified · worktree removed
+    Backlog --> Canceled
+    Done --> [*]
+    Canceled --> [*]
+        </pre>
+      </div>
+
+      <div class="grid2">
+        <div class="tile"><h4>Where state lives</h4><ul><li><strong>Linear</strong> — issue status, labels, comments, project descriptions (source of truth)</li><li><strong>Target repo on GitHub</strong> — branches, PRs, CI</li><li><strong>Disk</strong> — base clones + worktrees (ephemeral, gitignored)</li><li><strong>docs/runs/</strong> — the only state Foreman commits about a run</li><li><strong>Scratchpad</strong> — Codex <code>.out</code>/<code>.log</code> per ticket; the session UUID inside is what the fix round resumes and the Linear comment records</li></ul></div>
+        <div class="tile"><h4>Sensitive data</h4><ul><li>Doppler <code>dev</code> secrets land in a worktree's <code>.env</code> only on opt-in; removed with the worktree</li><li><code>.env.example</code> carries names only, never values</li><li><code>Security</code> label marks issues touching credentials, redaction, exposure — seeds <code>variant-analysis</code> sweeps</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 6 · Queue drain ═══════════════════════ -->
+    <section class="card" id="drain">
+      <h2><span class="num">06</span> Queue drain — batch mode</h2>
+      <p class="muted"><code>/queue-drain</code> takes the Todo column to reviewed, ready-for-review PRs plus an honest run report. Two human gates only: plan approval and PR merge. WIP cap 5; honest failure is a valid output. <code>Tier/Codex</code> tickets leave the fan-out lane for codex-dispatch, which carries its own review and PR steps, and rejoin at close.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    S0["0 · SWEEP<br/>sweep.sh per base clone<br/>remove REMOVABLE · report BLOCKED"] --> S1["1 · FETCH<br/>list_issues status = Todo only<br/>count open agent PRs"]
+    S1 --> Cap{"> ~5 unreviewed agent PRs?"}
+    Cap -->|yes| Stop["STOP and report"]
+    Cap -->|no| S2["2 · TRIAGE<br/>classify · read Repo/ + Tier/<br/>write back only if missing"]
+    S2 --> Cls{"class"}
+    Cls -->|needs-info| NI["→ Needs Input"]
+    Cls -->|blocked| BL["→ Blocked"]
+    Cls -->|"needs-plan / decompose"| S3["3 · PLAN GATE<br/>one planner subagent each"]
+    Cls -->|ready| S4
+    S3 --> Ask{{"Human: approve / revise / park / decompose<br/>all plans, one sitting"}}
+    Ask -->|approve| Post["Post plan to issue"] --> S4
+    Ask -->|decompose| Kids["Create child issues<br/>parent → Backlog"]
+    Ask -->|"revise / park"| S3
+    S4["4 · FAN-OUT<br/>group by Repo/ · fetch once per repo<br/>coordinator creates every worktree<br/>≤ 5 implementers in one message<br/>→ In Progress as each starts"]
+    S4 --> Fab{"Tier?"}
+    Fab -->|"Fable — budget PROVISIONAL"| Att["Run alone, attended<br/>record wall-clock + tokens on ENG-70"]
+    Fab -->|"Codex — budget PROVISIONAL"| Cdx["codex-dispatch · § 03 Codex path<br/>Codex implements in the worktree · 30m×2 · max 2<br/>Claude verifies, secret-scans, pushes, opens PR,<br/>dispatches reviewer, one fix round by UUID"]
+    Fab -->|"haiku · sonnet · opus"| Impl["Implementers<br/>haiku 20m×2 · sonnet 60m×2<br/>opus 90m×2 · fable 120m×1"]
+    Att --> S5
+    Cdx -->|"review + PR already done inside<br/>no second stage-5 reviewer"| S6
+    Impl --> S5["5 · VERIFY<br/>fresh reviewer per diff<br/>diff + issue + plan only"]
+    S5 --> Gate{"tests pass AND review clean<br/>AND karpathy self-check?"}
+    Gate -->|findings| Impl
+    Gate -->|"budget out"| Fail["Honest save_comment,<br/>then exactly one status"]
+    Fail --> Need{"What does it need?"}
+    Need -->|"external dependency"| BL2["→ Blocked"]
+    Need -->|"better description"| NI2["→ Needs Input"]
+    Need -->|"nothing — retryable as-is"| Todo["→ Todo"]
+    Need -->|"live worktree kept"| Keep["leave In Progress"]
+    Gate -->|yes| S6["6 · CLOSE<br/>push · gh pr create (ready)<br/>auto-review → gh pr review<br/>save_comment · → In Review"]
+    S6 --> More{"Ready tickets beyond cap?"}
+    More -->|"next wave"| S4
+    More -->|no| S7["7 · RETRO — mandatory<br/>docs/runs/YYYY-MM-DD-drain.md · commit"]
+    S7 --> MG{{"Human merges PRs"}}
+    MG --> Done["→ Done · worktree removed"]
+
+    class S0,S1,S2,S3,S4,S5,S6,S7,Impl,Att,Cdx service
+    class Cap,Cls,Fab,Gate,Need,More decision
+    class Ask,MG actor
+    class Post,Kids,Todo,Keep,Done external
+    class Stop,NI,BL,Fail,BL2,NI2 deny
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Use for</th><th>Wall-clock</th><th>Attempts</th><th>Concurrent</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td><span class="role">haiku</span></td><td>Mechanical, well-specified: doc drift, rename, missing guard, one-line fix</td><td>20 min</td><td>2</td><td>—</td><td><span class="badge ok">lowest</span></td></tr>
+            <tr><td><span class="role">sonnet</span></td><td>Ordinary bugfix — the default for a well-written ticket</td><td>60 min</td><td>2</td><td>—</td><td><span class="badge ok">floor for real work</span></td></tr>
+            <tr><td><span class="role">opus</span></td><td>Unclear root cause, cross-cutting, concurrency/security, or lower tier failed</td><td>90 min</td><td>2</td><td>—</td><td><span class="badge warn">$5 / $25 MTok</span></td></tr>
+            <tr><td><span class="role">fable</span></td><td>Hardest long-horizon work, or opus failed — a deliberate choice, never a default</td><td>120 min <span class="badge warn">provisional</span></td><td>1</td><td>max 1</td><td><span class="badge danger">$10 / $50 MTok</span></td></tr>
+            <tr><td><span class="role">codex</span></td><td>Not a Claude tier: OpenAI Codex CLI implements, Claude coordinates and reviews. Opt-in only — assigned when the user asks for Codex, never derived from cost or difficulty</td><td>30 min <span class="badge warn">provisional</span></td><td>2 + 1 fix round</td><td>max 2</td><td><span class="badge warn">OpenAI billing</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 7 · Workspace ═══════════════════════ -->
+    <section class="card" id="workspace">
+      <h2><span class="num">07</span> Workspace, worktrees &amp; secrets</h2>
+      <p class="muted">One base clone per target repo, one worktree per issue beneath it. Worktrees live <em>inside</em> the clone so Doppler's path-keyed scope inherits down. Teardown is secret hygiene, not just disk hygiene.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    subgraph WS["workspace/ — gitignored"]
+        Base["api-server/<br/>base clone · stays on main<br/>doppler scope: project + dev<br/>gc.auto = 0 · fetch once per batch"]
+        subgraph WTS[".worktrees/"]
+            W1["ENG-42/<br/>branch = gitBranchName<br/>own node_modules"]
+            W2["ENG-43/<br/>issue Blocked → tree kept"]
+        end
+    end
+    Dop[("🔐 Doppler")] -.->|"npm run env-sync<br/>inside the worktree · dev only"| W1
+    Base -->|"git worktree add"| W1
+    Base -->|"git worktree add"| W2
+    W1 -->|"push · gh pr create"| PR["🐙 PR on origin"]
+    PR -->|"merged + verified ⇒ Done"| RM["git worktree remove<br/>takes .env with it · prune"]
+    Sweep["sweep.sh<br/>before every batch"] -->|"clean AND pushed AND PR merged"| RM
+    Sweep -->|"any test fails"| Rep["Report as BLOCKED tree<br/>never rm -rf"]
+    W2 -.-> Rep
+    Tok["DOPPLER_TOKEN"] x--x|"never in a subagent env"| W1
+
+    class Base,W1,W2 data
+    class Dop,PR external
+    class Sweep,RM service
+    class Tok,Rep deny
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Location</th><th>Tracked by</th><th>Holds</th><th>Secrets from</th><th>Who writes</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge info">Foreman root</span></td><td>this repo</td><td>skills, docs, <code>.env.example</code> (names only)</td><td>—</td><td>coordinator, human</td></tr>
+            <tr><td><span class="badge info">workspace/&lt;repo&gt;</span></td><td>target repo (<code>main</code>)</td><td>base clone — branched from, fetched into, never edited</td><td>Doppler scope set once here</td><td>coordinator (fetch only)</td></tr>
+            <tr><td><span class="badge warn">.worktrees/ENG-NN</span></td><td>target repo (branch)</td><td>the fix; optional <code>.env</code></td><td>Doppler <code>dev</code> via env-sync</td><td>one subagent</td></tr>
+            <tr><td><span class="badge danger">prd config</span></td><td>—</td><td>never touched by this workflow</td><td>—</td><td>nobody here</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 8 · Operations ═══════════════════════ -->
+    <section class="card" id="operations">
+      <h2><span class="num">08</span> Running it &amp; what breaks</h2>
+      <div class="grid2">
+        <div class="tile"><h4>Start a ticket by hand</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">git clone &lt;url&gt; workspace/&lt;repo&gt;     # once
+cd workspace/&lt;repo&gt;
+git fetch origin
+git worktree add .worktrees/ENG-42 \
+  -b &lt;gitBranchName&gt; origin/main
+cd .worktrees/ENG-42 &amp;&amp; npm ci</pre></div>
+        <div class="tile"><h4>Drain the queue</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">/queue-drain
+# or: "drain the queue"
+bash .claude/skills/queue-drain/scripts/sweep.sh workspace/&lt;repo&gt;
+bash … sweep.sh workspace/&lt;repo&gt; --remove</pre></div>
+        <div class="tile"><h4>Dispatch to Codex (Tier/Codex)</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">codex --version &amp;&amp; codex login status   # once per run
+timeout 600 codex exec -m gpt-5.6-terra \
+  --config model_reasoning_effort="high" \
+  --config sandbox_workspace_write.network_access=false \
+  --sandbox workspace-write --full-auto --skip-git-repo-check \
+  -C .worktrees/ENG-42 -o $SCRATCH/codex-ENG-42.out \
+  "&lt;description verbatim + contract&gt;" &lt;/dev/null 2&gt;$SCRATCH/codex-ENG-42.log
+grep -m1 '^session id:' $SCRATCH/codex-ENG-42.log   # keep the UUID
+# fix round: … resume &lt;uuid&gt; "findings"  (never --last)</pre></div>
+        <div class="tile"><h4>Tear down</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">git -C workspace/&lt;repo&gt; worktree remove .worktrees/ENG-42
+git -C workspace/&lt;repo&gt; worktree prune
+git worktree list    # find leftovers</pre></div>
+        <div class="tile"><h4>Known failure modes</h4><ul>
+          <li>Subagent lands in an empty tree → someone used <code>isolation: "worktree"</code> (worktrees Foreman, not the target)</li>
+          <li>Two agents fighting over build state → they share a checkout; one worktree per ticket</li>
+          <li>Flags silently dropped on the server → <code>npm run</code> strips them; call <code>node scripts/x.mjs --flag</code> directly</li>
+          <li>Same blocker rediscovered every drain → a stalled issue was returned to Todo instead of an off-ramp</li>
+          <li>400 MB of dead clones → teardown skipped at Done; run the sweep</li>
+          <li>Codex hangs with zero output and zero CPU → stdin left open; append <code>&lt;/dev/null</code></li>
+          <li>Codex exit 124 or empty <code>-o</code> file → <code>timeout</code> killed it; that's the timeout lane, whatever the log says</li>
+          <li>Fix round landed on the wrong ticket → <code>resume --last</code> with parallel runs; resume by UUID</li>
+          <li>Wrong UUID captured → grep hit the <code>workdir:</code> path; anchor on the <code>session id:</code> line</li>
+          <li>Codex silently on a different model after resume → flags not re-passed; repeat model, effort, sandbox, worktree</li>
+        </ul></div>
+      </div>
+      <div class="callout danger">
+        <strong>Do not</strong>
+        Work in the base clone. <code>git add workspace/</code> from the root. <code>rm -rf</code> a worktree. Copy a <code>.env</code> between worktrees. Touch <code>prd</code>. Put <code>DOPPLER_TOKEN</code> in a subagent's environment. Pass a label name like <code>Tier/Sonnet</code> straight into <code>model:</code>. Park an unworkable issue in Todo. Dispatch with permission-skip flags. Fake a green gate. <code>env-sync</code> into a Codex worktree. Let Codex push. Resume Codex with <code>--last</code>. Push a Codex diff without the secret scan.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 9 · Glossary ═══════════════════════ -->
+    <section class="card" id="glossary">
+      <h2><span class="num">09</span> Glossary &amp; changelog</h2>
+      <div class="grid2">
+        <div>
+          <h3 style="margin-top:0">Terms</h3>
+          <dl>
+            <dt><strong>Base clone</strong></dt><dd class="muted"><code>workspace/&lt;repo&gt;</code>; stays on <code>main</code>, exists to be branched from and fetched into.</dd>
+            <dt><strong>Worktree</strong></dt><dd class="muted"><code>.worktrees/ENG-NN</code> under the base clone; one per issue; the only place a fix is edited.</dd>
+            <dt><strong>Coordinator</strong></dt><dd class="muted">The main Claude session; owns Linear writes, worktrees, and the report.</dd>
+            <dt><strong>Off-ramp</strong></dt><dd class="muted"><code>Needs Input</code> (ask unworkable) or <code>Blocked</code> (external dependency) — honest parking for a stalled issue.</dd>
+            <dt><strong>BLOCKED tree</strong></dt><dd class="muted">A worktree that fails the sweep's three tests; reported, never deleted. Independent of Linear's <code>Blocked</code> status.</dd>
+            <dt><strong>Tier</strong></dt><dd class="muted">The model an issue needs, recorded once as <code>Tier/…</code>; label is capitalized, <code>model:</code> string is lowercase.</dd>
+            <dt><strong>Drain</strong></dt><dd class="muted">One <code>/queue-drain</code> run: sweep → fetch → triage → plan gate → fan-out → verify → close → retro.</dd>
+            <dt><strong>Codex / Tier/Codex</strong></dt><dd class="muted">The OpenAI Codex CLI as implementer, opted into per ticket by a human. Not a Claude tier: maps to no <code>model:</code> string; routes to codex-dispatch.</dd>
+            <dt><strong>codex-dispatch</strong></dt><dd class="muted">First-party skill: the Linear lifecycle around a sandboxed <code>codex exec</code> — Codex commits, Claude verifies, pushes, opens the PR, reviews, and runs one fix round.</dd>
+            <dt><strong>Session UUID</strong></dt><dd class="muted">Codex's session id, read from the <code>session id:</code> log line. The fix round resumes by it (never <code>--last</code>) and the Linear close-out records it.</dd>
+          </dl>
+        </div>
+        <div>
+          <h3 style="margin-top:0">Doc changelog</h3>
+          <ul class="changelog">
+            <li><time>2026-09-01</time> Added the Codex path: <code>Tier/Codex</code> in the big picture, ticket flow, a dedicated codex-dispatch flowchart + sequence view, permissions row and footnotes, data model, drain routing, ops tile, failure modes.</li>
+            <li><time>2026-08-28</time> PRs open ready for review with an automatic GitHub review at open.</li>
+            <li><time>2026-08-21</time> Rebuilt on <code>templates/app-doc-template.html</code>: themed, added permissions model, data model, sequence view.</li>
+            <li><time>2026-08-21</time> Initial five-flowchart version.</li>
+          </ul>
+          <h3>Sources</h3>
+          <ul class="muted" style="font-size:.9rem"><li><code>CLAUDE.md</code></li><li><code>docs/workspace.md</code></li><li><code>docs/skills.md</code></li><li><code>.claude/skills/queue-drain/SKILL.md</code></li><li><code>.claude/skills/codex-dispatch/SKILL.md</code></li><li><code>.claude/skills/codex/SKILL.md</code></li></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  Foreman · built from <code>docs/templates/app-doc-template.html</code> · diagrams by Mermaid · press <kbd>t</kbd> to toggle theme · <kbd>m</kbd> to toggle motion
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  /* ───────── Diagram palettes (one per theme) ───────── */
+  const PALETTES = {
+    light: {
+      actor:    "fill:#fff3c4,stroke:#b7791f,stroke-width:2px,color:#5c3d00",
+      service:  "fill:#dbe4ff,stroke:#4f6df5,stroke-width:2px,color:#1b2a6b",
+      data:     "fill:#e6e0ff,stroke:#7c5cff,stroke-width:2px,color:#2d1e73",
+      external: "fill:#e9ecf3,stroke:#7a8199,stroke-width:2px,stroke-dasharray:5 3,color:#2c3140",
+      decision: "fill:#ffe9a8,stroke:#d98c07,stroke-width:2px,color:#4d3300",
+      allow:    "fill:#d3f5e1,stroke:#1f9d55,stroke-width:2px,color:#0d4a28",
+      deny:     "fill:#ffd9d6,stroke:#d7423b,stroke-width:2px,color:#6b1612",
+    },
+    dark: {
+      actor:    "fill:#4a3c12,stroke:#f2b544,stroke-width:2px,color:#ffe9a8",
+      service:  "fill:#23306b,stroke:#7b93ff,stroke-width:2px,color:#dbe4ff",
+      data:     "fill:#2d2461,stroke:#a48cff,stroke-width:2px,color:#e6e0ff",
+      external: "fill:#262b3a,stroke:#9aa0b4,stroke-width:2px,stroke-dasharray:5 3,color:#e8eaf2",
+      decision: "fill:#5a4200,stroke:#f2b544,stroke-width:2px,color:#fff1c2",
+      allow:    "fill:#0f3d24,stroke:#3ccf7a,stroke-width:2px,color:#d3f5e1",
+      deny:     "fill:#4d1714,stroke:#ff6b63,stroke-width:2px,color:#ffd9d6",
+    },
+  };
+  const LEGEND = [["actor","people / clients"],["service","our code"],["data","storage / queues"],["external","third-party"],["decision","check / branch"],["allow","allowed / success"],["deny","denied / failure"]];
+
+  const root = document.documentElement;
+  const mql = matchMedia("(prefers-color-scheme: dark)");
+  const effective = () => root.dataset.theme === "auto" ? (mql.matches ? "dark" : "light") : root.dataset.theme;
+
+  /* ───────── Theme toggle: auto → light → dark → auto ───────── */
+  try { const saved = localStorage.getItem("doc-theme"); if (saved) root.dataset.theme = saved; } catch {}
+  const label = document.getElementById("themeLabel");
+  const paint = () => { label.textContent = root.dataset.theme === "auto" ? "Auto" : root.dataset.theme === "dark" ? "Dark" : "Light"; };
+  const cycle = () => {
+    root.dataset.theme = { auto: "light", light: "dark", dark: "auto" }[root.dataset.theme];
+    try { localStorage.setItem("doc-theme", root.dataset.theme); } catch {}
+    paint(); renderAll();
+  };
+  document.getElementById("themeToggle").addEventListener("click", cycle);
+
+  /* ───────── Motion toggle: on by default unless the OS asks for reduced motion ───────── */
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  root.dataset.motion = reduced ? "off" : "on";
+  try { const m = localStorage.getItem("doc-motion"); if (m) root.dataset.motion = m; } catch {}
+  const motionBtn = document.getElementById("motionToggle"), motionLabel = document.getElementById("motionLabel");
+  const paintMotion = () => { const on = root.dataset.motion === "on"; motionLabel.textContent = on ? "Motion on" : "Motion off"; motionBtn.setAttribute("aria-pressed", on); };
+  const toggleMotion = () => {
+    root.dataset.motion = root.dataset.motion === "on" ? "off" : "on";
+    try { localStorage.setItem("doc-motion", root.dataset.motion); } catch {}
+    paintMotion();
+    if (root.dataset.motion === "on") document.querySelectorAll(".diagram").forEach(replay);
+  };
+  motionBtn.addEventListener("click", toggleMotion);
+  paintMotion();
+  addEventListener("keydown", e => {
+    if (/input|textarea/i.test(e.target.tagName)) return;
+    if (e.key === "t") cycle();
+    if (e.key === "m") toggleMotion();
+  });
+
+  /* ───────── Animation: tag reveal units in draw order, arm on scroll-in ─────────
+     Order = nodes/actors first, then edges/messages (each in DOM order, which for a
+     sequence diagram is chronological), so a diagram builds the way you would draw it. */
+  const UNIT_SELECTORS = {
+    nodes: "g.cluster, g.node, g[id^='entity-'], g[id^='root-'], g.actor-man, .actor-line",
+    edges: "path.flowchart-link, g.edgeLabel, path.transition, path.relationshipLine, .relationshipLabel, .relationshipLabelBox, line.messageLine0, line.messageLine1, text.messageText, line[marker-start*='sequencenumber'], .sequenceNumber, .loopLine, .labelBox, .labelText, .loopText",
+  };
+  const liveObs = new IntersectionObserver(entries => {
+    entries.forEach(e => e.target.classList.toggle("live", e.isIntersecting));
+  }, { rootMargin: "80px 0px", threshold: 0.15 });
+  function animate(holder) {
+    const d = holder.closest(".diagram"), svg = holder.querySelector("svg");
+    if (!d || !svg) return;
+    svg.querySelectorAll(".unit").forEach(el => { el.classList.remove("unit"); el.style.removeProperty("--i"); });
+    const units = [...svg.querySelectorAll(UNIT_SELECTORS.nodes), ...svg.querySelectorAll(UNIT_SELECTORS.edges)];
+    const step = units.length > 40 ? Math.max(1, Math.round(units.length / 40)) : 1;  // cap total reveal ≈ 2s
+    units.forEach((el, i) => { el.classList.add("unit"); el.style.setProperty("--i", Math.floor(i / step)); });
+    d.classList.add("armed");
+    liveObs.observe(d);
+  }
+  function replay(d) {
+    d.classList.remove("live");
+    void d.offsetWidth;  // restart CSS animations
+    if (d.getBoundingClientRect().top < innerHeight && d.getBoundingClientRect().bottom > 0) d.classList.add("live");
+  }
+  mql.addEventListener("change", () => { if (root.dataset.theme === "auto") renderAll(); });
+  paint();
+
+  /* ───────── Mermaid rendering (re-rendered per theme) ───────── */
+  const blocks = [...document.querySelectorAll("pre.mermaid")].map((pre, i) => {
+    const src = [...pre.childNodes].map(n => n.nodeType === 3 ? n.data : n.tagName === "BR" ? "<br/>" : n.textContent).join("").trim();
+    const holder = document.createElement("div");
+    holder.className = "mermaid-out";
+    pre.replaceWith(holder);
+    return { id: `mmd-${i}`, src, holder, kind: src.split(/\s/)[0] };
+  });
+
+  function classDefs(mode) {
+    return Object.entries(PALETTES[mode]).map(([k, v]) => `classDef ${k} ${v}`).join("\n");
+  }
+
+  async function renderAll() {
+    const mode = effective();
+    const cs = getComputedStyle(root);
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "base",
+      securityLevel: "loose",
+      fontFamily: cs.getPropertyValue("--font"),
+      flowchart: { htmlLabels: true, curve: "basis", padding: 12 },
+      sequence: { actorMargin: 40, mirrorActors: false },
+      themeVariables: {
+        background: "transparent",
+        primaryColor: cs.getPropertyValue("--bg-elev").trim(),
+        primaryTextColor: cs.getPropertyValue("--fg").trim(),
+        primaryBorderColor: cs.getPropertyValue("--line").trim(),
+        lineColor: cs.getPropertyValue("--fg-muted").trim(),
+        textColor: cs.getPropertyValue("--fg").trim(),
+        secondaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        tertiaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        clusterBkg: cs.getPropertyValue("--bg-elev").trim(),
+        clusterBorder: cs.getPropertyValue("--line").trim(),
+        edgeLabelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        actorBkg: cs.getPropertyValue("--bg-elev").trim(),
+        actorBorder: cs.getPropertyValue("--accent").trim(),
+        actorTextColor: cs.getPropertyValue("--fg").trim(),
+        signalColor: cs.getPropertyValue("--fg").trim(),
+        signalTextColor: cs.getPropertyValue("--fg").trim(),
+        noteBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        noteTextColor: cs.getPropertyValue("--fg").trim(),
+        attributeBackgroundColorOdd: cs.getPropertyValue("--bg-elev").trim(),
+        attributeBackgroundColorEven: cs.getPropertyValue("--bg-sunk").trim(),
+        fontSize: "14px",
+        /* shared node/label defaults (ER, state, class diagrams read these) */
+        darkMode: mode === "dark",
+        mainBkg: cs.getPropertyValue("--bg-elev").trim(),
+        nodeBorder: cs.getPropertyValue("--accent").trim(),
+        nodeTextColor: cs.getPropertyValue("--fg").trim(),
+        labelColor: cs.getPropertyValue("--fg").trim(),
+        labelTextColor: cs.getPropertyValue("--fg").trim(),
+        labelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        titleColor: cs.getPropertyValue("--fg").trim(),
+        /* state diagrams */
+        stateBkg: cs.getPropertyValue("--bg-elev").trim(),
+        stateLabelColor: cs.getPropertyValue("--fg").trim(),
+        altBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeTitleBackground: cs.getPropertyValue("--bg-elev").trim(),
+        compositeBorder: cs.getPropertyValue("--line").trim(),
+        transitionColor: cs.getPropertyValue("--fg-muted").trim(),
+        transitionLabelColor: cs.getPropertyValue("--fg").trim(),
+        labelBoxBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        labelBoxBorderColor: cs.getPropertyValue("--line").trim(),
+        specialStateColor: cs.getPropertyValue("--accent").trim(),
+        innerEndBackground: cs.getPropertyValue("--accent").trim(),
+        /* ER diagrams */
+        rowOdd: cs.getPropertyValue("--bg-elev").trim(),
+        rowEven: cs.getPropertyValue("--bg-sunk").trim(),
+      },
+    });
+    for (const b of blocks) {
+      const isFlow = /^(flowchart|graph)\b/.test(b.kind);
+      const code = isFlow ? `${b.src}\n${classDefs(mode)}` : b.src;
+      try {
+        const { svg } = await mermaid.render(`${b.id}-${mode}-${Date.now()}`, code);
+        b.holder.innerHTML = svg;
+        b.holder.dataset.kind = b.kind;
+        animate(b.holder);
+        if (b.holder.closest(".diagram")?.classList.contains("scroll")) {
+          const el = b.holder.querySelector("svg"), w = el?.viewBox?.baseVal?.width;
+          if (el && w) { el.style.maxWidth = "none"; el.style.width = Math.ceil(w) + "px"; }
+        }
+      } catch (err) {
+        b.holder.innerHTML = `<pre style="color:var(--danger);white-space:pre-wrap;font-family:var(--mono);font-size:.8rem">Mermaid error in diagram ${b.id}:\n${err.message || err}</pre>`;
+      }
+    }
+    paintLegends(mode);
+  }
+
+  function paintLegends(mode) {
+    document.querySelectorAll("[data-legend]").forEach(el => {
+      el.innerHTML = LEGEND.map(([k, t]) => {
+        const fill = PALETTES[mode][k].match(/fill:([^,]+)/)[1];
+        const stroke = PALETTES[mode][k].match(/stroke:([^,]+)/)[1];
+        return `<span><i style="background:${fill};border-color:${stroke}"></i>${t}</span>`;
+      }).join("");
+    });
+  }
+
+  /* ───────── Diagram tools: copy source / open svg ───────── */
+  document.querySelectorAll(".diagram").forEach((d, i) => {
+    d.querySelectorAll(".tools button").forEach(btn => btn.addEventListener("click", () => {
+      const b = blocks[i];
+      if (btn.dataset.act === "replay") { replay(d); return; }
+      if (btn.dataset.act === "copy") {
+        navigator.clipboard?.writeText(b.src).then(() => { btn.textContent = "copied"; setTimeout(() => btn.textContent = "copy source", 1200); });
+      } else {
+        const svg = b.holder.querySelector("svg"); if (!svg) return;
+        // outerHTML is HTML serialisation (<br>, unclosed tags) — invalid as standalone XML.
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        clone.style.background = getComputedStyle(root).getPropertyValue("--bg-sunk").trim();
+        clone.style.maxWidth = "none";
+        const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+        open(URL.createObjectURL(blob), "_blank");
+      }
+    }));
+  });
+
+  /* ───────── Sidebar TOC + scroll spy ───────── */
+  const toc = document.getElementById("toc");
+  const sections = [...document.querySelectorAll("main section[id]")];
+  toc.innerHTML = sections.map(s => `<a href="#${s.id}">${s.querySelector("h2")?.textContent.replace(/^\d+\s*/, "").trim() ?? s.id}</a>`).join("");
+  const links = [...toc.querySelectorAll("a")];
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) links.forEach(l => l.classList.toggle("active", l.hash === `#${e.target.id}`)); });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  sections.forEach(s => spy.observe(s));
+
+  renderAll();
+</script>
+</body>
+</html>

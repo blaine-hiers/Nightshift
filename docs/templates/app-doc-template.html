@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{App Name}} — How It Works</title>
+<!--
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  APP DOC TEMPLATE                                                    │
+  │                                                                      │
+  │  1. Copy this file next to the thing you're documenting.             │
+  │  2. Replace every {{placeholder}}.                                   │
+  │  3. Edit the <pre class="mermaid"> blocks — plain Mermaid source.    │
+  │     https://mermaid.js.org/syntax/flowchart.html                     │
+  │  4. Delete sections you don't need; the sidebar builds itself from   │
+  │     every <section> that has an id and an <h2>.                      │
+  │  5. Wide diagram? class="diagram scroll" keeps natural size and      │
+  │     scrolls sideways instead of shrinking to fit.                    │
+  │                                                                      │
+  │  Diagram colours: DON'T hard-code fills. Tag nodes with one of the   │
+  │  shared classes and the page supplies a palette per theme:           │
+  │     class A,B actor      people / roles / clients                    │
+  │     class C,D service    your code: services, handlers, jobs         │
+  │     class E   data       databases, queues, caches, files            │
+  │     class F   external   third-party APIs, vendors                   │
+  │     class G   decision   branch points, policy checks                │
+  │     class H   allow      permitted / success / green path            │
+  │     class I   deny       denied / error / red path                   │
+  │                                                                      │
+  │  Needs network once to load Mermaid from jsDelivr.                   │
+  └──────────────────────────────────────────────────────────────────────┘
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ───────────────────────── Tokens ───────────────────────── */
+  :root {
+    --bg:        #f6f7fb;
+    --bg-elev:   #ffffff;
+    --bg-sunk:   #eef0f6;
+    --fg:        #15171f;
+    --fg-muted:  #5b6070;
+    --line:      #dfe2ec;
+    --accent:    #4f6df5;
+    --accent-fg: #ffffff;
+    --ok:        #1f9d55;
+    --warn:      #d98c07;
+    --danger:    #d7423b;
+    --shadow:    0 1px 2px rgba(20,24,40,.06), 0 8px 24px -12px rgba(20,24,40,.18);
+    --radius:    14px;
+    --font:      "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="auto"] {
+      --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+      --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+      --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+    --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+    --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+  }
+
+  /* ───────────────────────── Base ───────────────────────── */
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; scroll-padding-top:84px; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15.5px/1.6 var(--font); transition:background .25s, color .25s; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code, kbd { font-family:var(--mono); font-size:.88em; background:var(--bg-sunk); border:1px solid var(--line); padding:.1em .4em; border-radius:6px; }
+  h1 { font-size:clamp(1.8rem, 3.5vw, 2.6rem); line-height:1.15; letter-spacing:-.02em; margin:.2rem 0 .5rem; font-weight:800; }
+  h2 { font-size:1.35rem; letter-spacing:-.01em; margin:0 0 .35rem; font-weight:700; display:flex; align-items:center; gap:.55rem; }
+  h2 .num { font-family:var(--mono); font-size:.75rem; color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); padding:.2em .55em; border-radius:999px; }
+  h3 { font-size:1.02rem; margin:1.2rem 0 .4rem; font-weight:650; }
+  p { margin:.25rem 0 .9rem; }
+  .muted { color:var(--fg-muted); }
+
+  /* ───────────────────────── Layout ───────────────────────── */
+  .topbar { position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--line); }
+  .topbar-inner { max-width:1240px; margin:0 auto; padding:.7rem 1.25rem; display:flex; align-items:center; gap:1rem; }
+  .brand { display:flex; align-items:center; gap:.6rem; font-weight:700; }
+  .brand .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 40%, var(--ok))); display:grid; place-items:center; color:var(--accent-fg); font-size:.95rem; }
+  .spacer { flex:1; }
+  .meta-chip { font-family:var(--mono); font-size:.74rem; color:var(--fg-muted); border:1px solid var(--line); padding:.25em .6em; border-radius:999px; background:var(--bg-elev); }
+
+  .theme-toggle { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--bg-elev); color:var(--fg); border-radius:999px; padding:.3rem .4rem .3rem .7rem; cursor:pointer; font:inherit; font-size:.85rem; font-weight:500; }
+  .theme-toggle:hover { border-color:var(--accent); }
+  .theme-toggle .track { width:38px; height:22px; border-radius:999px; background:var(--bg-sunk); border:1px solid var(--line); position:relative; transition:background .25s; }
+  .theme-toggle .knob { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--accent); transition:transform .25s; display:grid; place-items:center; font-size:.6rem; }
+  :root[data-theme="dark"] .theme-toggle .knob { transform:translateX(16px); }
+  @media (prefers-color-scheme: dark) { :root[data-theme="auto"] .theme-toggle .knob { transform:translateX(16px); } }
+
+  .page { max-width:1240px; margin:0 auto; padding:1.5rem 1.25rem 4rem; display:grid; grid-template-columns:230px minmax(0,1fr); gap:2rem; }
+  @media (max-width: 900px) { .page { grid-template-columns:1fr; } .sidebar { display:none; } }
+
+  .sidebar { position:sticky; top:84px; align-self:start; font-size:.88rem; }
+  .sidebar .label { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-muted); margin:0 0 .5rem .6rem; font-weight:600; }
+  .sidebar a { display:block; color:var(--fg-muted); padding:.38rem .6rem; border-left:2px solid transparent; border-radius:0 8px 8px 0; }
+  .sidebar a:hover { color:var(--fg); background:var(--bg-elev); text-decoration:none; }
+  .sidebar a.active { color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+
+  .hero { padding:1rem 0 1.5rem; border-bottom:1px solid var(--line); margin-bottom:1.5rem; }
+  .hero .lede { font-size:1.1rem; color:var(--fg-muted); max-width:70ch; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:.7rem; margin-top:1.2rem; }
+  .fact { background:var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:.7rem .9rem; }
+  .fact .k { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--fg-muted); font-weight:600; }
+  .fact .v { font-weight:600; margin-top:.15rem; font-family:var(--mono); font-size:.9rem; }
+
+  section.card { background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:1.35rem 1.5rem 1.2rem; margin:0 0 1.4rem; box-shadow:var(--shadow); }
+  .diagram { background:var(--bg-sunk); border:1px solid var(--line); border-radius:12px; padding:1rem; overflow-x:auto; margin:.8rem 0; position:relative; }
+  .diagram pre.mermaid { margin:0; display:flex; justify-content:center; }
+  .diagram svg { max-width:100%; height:auto; }
+  .diagram.scroll svg { max-width:none; }   /* add class="diagram scroll" for wide trees: natural size, scroll sideways */
+  .diagram .tools { position:absolute; top:.5rem; right:.5rem; display:flex; gap:.3rem; opacity:0; transition:opacity .15s; }
+  .diagram:hover .tools { opacity:1; }
+  .diagram .tools button { font:inherit; font-size:.72rem; font-family:var(--mono); background:var(--bg-elev); color:var(--fg-muted); border:1px solid var(--line); border-radius:6px; padding:.2em .5em; cursor:pointer; }
+  .diagram .tools button:hover { color:var(--fg); border-color:var(--accent); }
+  .caption { font-size:.85rem; color:var(--fg-muted); margin:-.3rem 0 .6rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:.4rem .9rem; font-size:.8rem; color:var(--fg-muted); margin-top:.4rem; }
+  .legend span { display:inline-flex; align-items:center; gap:.35rem; }
+  .legend i { width:.85em; height:.85em; border-radius:3px; border:1px solid var(--line); display:inline-block; }
+
+  .callout { border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); padding:.7rem .95rem; border-radius:0 10px 10px 0; margin:.9rem 0; }
+  .callout.warn { border-color:var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent); }
+  .callout.danger { border-color:var(--danger); background:color-mix(in srgb, var(--danger) 9%, transparent); }
+  .callout strong { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.15rem; }
+
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
+  .tile { background:var(--bg-sunk); border:1px solid var(--line); border-radius:10px; padding:.8rem .95rem; }
+  .tile h4 { margin:0 0 .3rem; font-size:.95rem; }
+  .tile ul { margin:.2rem 0 0 1.1rem; padding:0; }
+
+  table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; margin:.6rem 0 .4rem; }
+  th, td { padding:.55rem .7rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-muted); font-weight:600; background:var(--bg-sunk); white-space:nowrap; }
+  th:first-child { border-radius:8px 0 0 0; } th:last-child { border-radius:0 8px 0 0; }
+  tr:last-child td { border-bottom:none; }
+  .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  .yes, .no, .cond { display:inline-grid; place-items:center; width:1.55em; height:1.55em; border-radius:6px; font-weight:700; font-size:.85em; }
+  .yes { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .no { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .cond { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .role { display:inline-block; font-family:var(--mono); font-size:.78rem; padding:.15em .5em; border-radius:6px; border:1px solid var(--line); background:var(--bg-elev); }
+
+  .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:.15em .55em; border-radius:999px; letter-spacing:.02em; }
+  .badge.ok { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .badge.warn { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .badge.danger { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .badge.info { background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+
+  .changelog li { margin-bottom:.35rem; }
+  .changelog time { font-family:var(--mono); font-size:.8rem; color:var(--fg-muted); margin-right:.5rem; }
+
+  footer { max-width:1240px; margin:0 auto; padding:0 1.25rem 2rem; color:var(--fg-muted); font-size:.82rem; }
+
+  @media print {
+    .topbar, .sidebar, .diagram .tools { display:none !important; }
+    .page { grid-template-columns:1fr; }
+    section.card { box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="logo">◆</span> {{App Name}}</div>
+    <span class="meta-chip">v{{1.0.0}}</span>
+    <span class="meta-chip">{{owner-team}}</span>
+    <div class="spacer"></div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme (t)">
+      <span id="themeLabel">Auto</span>
+      <span class="track"><span class="knob"></span></span>
+    </button>
+  </div>
+</div>
+
+<div class="page">
+  <aside class="sidebar">
+    <p class="label">On this page</p>
+    <nav id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>How {{App Name}} works</h1>
+      <p class="lede">{{One paragraph: what the app is for, who uses it, and the one thing a newcomer most needs to understand before touching it.}}</p>
+      <div class="facts">
+        <div class="fact"><div class="k">Repo</div><div class="v">{{org/repo}}</div></div>
+        <div class="fact"><div class="k">Stack</div><div class="v">{{Node · Postgres · …}}</div></div>
+        <div class="fact"><div class="k">Entry point</div><div class="v">{{src/index.ts}}</div></div>
+        <div class="fact"><div class="k">Runs on</div><div class="v">{{where it's deployed}}</div></div>
+        <div class="fact"><div class="k">Owner</div><div class="v">{{team / person}}</div></div>
+        <div class="fact"><div class="k">Last reviewed</div><div class="v">{{YYYY-MM-DD}}</div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 1 · Big picture ═══════════════════════ -->
+    <section class="card" id="overview">
+      <h2><span class="num">01</span> Big picture</h2>
+      <p class="muted">The whole system on one screen: who talks to it, what it's made of, what it depends on. Keep it to ~10 boxes — detail belongs in the sections below.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    U["👤 {{End user}}"] --> FE["{{Web / mobile client}}"]
+    A["🤖 {{Integration / API client}}"] --> GW
+    FE --> GW["{{API gateway / router}}"]
+    GW --> SVC["{{Core service}}"]
+    SVC --> DB[("{{Primary database}}")]
+    SVC --> Q[["{{Queue / job runner}}"]]
+    Q --> WK["{{Background worker}}"]
+    WK --> EXT["{{Third-party API}}"]
+    SVC --> IDP["{{Identity provider}}"]
+
+    class U,A actor
+    class FE,GW,SVC,WK service
+    class DB,Q data
+    class EXT,IDP external
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>Inputs</h4><ul><li>{{What comes in, from whom}}</li><li>{{…}}</li></ul></div>
+        <div class="tile"><h4>Outputs</h4><ul><li>{{What goes out, to whom}}</li><li>{{…}}</li></ul></div>
+        <div class="tile"><h4>Depends on</h4><ul><li>{{Services that must be up for this to work}}</li></ul></div>
+        <div class="tile"><h4>Depended on by</h4><ul><li>{{Things that break if this is down}}</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 2 · Components ═══════════════════════ -->
+    <section class="card" id="components">
+      <h2><span class="num">02</span> Components &amp; responsibilities</h2>
+      <p class="muted">One row per box in the big picture. If a component can't be described in one line, it's two components.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Lives in</th><th>Responsibility</th><th>Talks to</th></tr></thead>
+          <tbody>
+            <tr><td><strong>{{API gateway}}</strong></td><td><code>{{src/gateway/}}</code></td><td>{{Auth, rate limiting, routing}}</td><td>{{Core service, IdP}}</td></tr>
+            <tr><td><strong>{{Core service}}</strong></td><td><code>{{src/core/}}</code></td><td>{{Business rules, validation, persistence}}</td><td>{{DB, queue}}</td></tr>
+            <tr><td><strong>{{Worker}}</strong></td><td><code>{{src/jobs/}}</code></td><td>{{Async side-effects: email, sync, webhooks}}</td><td>{{Third-party API}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 3 · Request flow ═══════════════════════ -->
+    <section class="card" id="request-flow">
+      <h2><span class="num">03</span> Request flow — the main path</h2>
+      <p class="muted">Trace one representative request end-to-end: <code>{{POST /orders}}</code>. Show where it can be rejected and where side-effects fire.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    S(["Request arrives<br/>{{METHOD /path}}"]) --> AUTH{"Valid session / token?"}
+    AUTH -->|no| R401["401 Unauthorized"]
+    AUTH -->|yes| AUTHZ{"Allowed to do this?<br/>see § Permissions"}
+    AUTHZ -->|no| R403["403 Forbidden"]
+    AUTHZ -->|yes| VAL{"Payload valid?"}
+    VAL -->|no| R400["400 + field errors"]
+    VAL -->|yes| BIZ["{{Apply business rules}}"]
+    BIZ --> TX["{{Write in one transaction}}"]
+    TX --> EVT[["{{Emit event / enqueue job}}"]]
+    TX --> OK(["{{201 Created}}"])
+    EVT -.-> WK["{{Worker picks it up}}<br/>see § Background work"]
+
+    class S,OK allow
+    class AUTH,AUTHZ,VAL decision
+    class R401,R403,R400 deny
+    class BIZ,TX,WK service
+    class EVT data
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <h3>Sequence view</h3>
+      <p class="caption">Same request, as who-calls-whom. Use this when timing or retries matter.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor C as {{Client}}
+    participant G as {{Gateway}}
+    participant S as {{Core service}}
+    participant D as {{Database}}
+    participant Q as {{Queue}}
+    C->>G: {{POST /orders}}
+    G->>G: verify token, check role
+    G->>S: forward (user ctx attached)
+    S->>D: BEGIN · insert · COMMIT
+    S-)Q: enqueue {{order.created}}
+    S-->>G: 201 {id}
+    G-->>C: 201 {id}
+        </pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 4 · Permissions ═══════════════════════ -->
+    <section class="card" id="permissions">
+      <h2><span class="num">04</span> Permissions &amp; access model</h2>
+      <p class="muted">Who can do what, and exactly where that decision is made in code. Every "it depends" in the matrix gets a footnote.</p>
+
+      <h3>Roles</h3>
+      <div class="grid2">
+        <div class="tile"><h4><span class="role">{{admin}}</span></h4><p class="muted" style="margin:0">{{Full control. Granted by …}}</p></div>
+        <div class="tile"><h4><span class="role">{{editor}}</span></h4><p class="muted" style="margin:0">{{Create and change own resources. Granted by …}}</p></div>
+        <div class="tile"><h4><span class="role">{{viewer}}</span></h4><p class="muted" style="margin:0">{{Read-only. Default for new accounts.}}</p></div>
+        <div class="tile"><h4><span class="role">{{service}}</span></h4><p class="muted" style="margin:0">{{Machine identity for integrations. API key scoped to …}}</p></div>
+      </div>
+
+      <h3>Permission matrix</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>{{admin}}</th><th>{{editor}}</th><th>{{viewer}}</th><th>{{service}}</th><th>Enforced in</th></tr></thead>
+          <tbody>
+            <tr><td>{{Read resource}}</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><code>{{policy.ts#canRead}}</code></td></tr>
+            <tr><td>{{Create resource}}</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="cond">¹</span></td><td><code>{{policy.ts#canCreate}}</code></td></tr>
+            <tr><td>{{Edit resource}}</td><td><span class="yes">✓</span></td><td><span class="cond">²</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><code>{{policy.ts#canEdit}}</code></td></tr>
+            <tr><td>{{Delete resource}}</td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><code>{{policy.ts#canDelete}}</code></td></tr>
+            <tr><td>{{Manage users / roles}}</td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><code>{{admin/routes.ts}}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.85rem">¹ {{Only with the <code>write</code> scope on the API key.}} &nbsp; ² {{Only resources they own, or in a workspace they belong to.}}</p>
+
+      <h3>Authorization decision</h3>
+      <p class="caption">The exact order checks run in. If this diagram and the code disagree, the code is the bug or this is — fix one today.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart TD
+    IN(["Request + identity"]) --> T{"Token / session valid?"}
+    T -->|"no or expired"| D401["Deny · 401"]
+    T -->|yes| SA{"Is service account?"}
+    SA -->|yes| SC{"Key has required scope?"}
+    SC -->|no| D403a["Deny · 403<br/>missing scope"]
+    SC -->|yes| RL
+    SA -->|no| ROLE{"Role permits action?<br/>(matrix above)"}
+    ROLE -->|no| D403b["Deny · 403"]
+    ROLE -->|"admin"| RL
+    ROLE -->|"editor / viewer"| OWN{"Owns resource or<br/>member of its workspace?"}
+    OWN -->|no| D403c["Deny · 403<br/>not owner"]
+    OWN -->|yes| RL{"Within rate limit?"}
+    RL -->|no| D429["Deny · 429"]
+    RL -->|yes| AL["Audit-log the decision"]
+    AL --> OK(["Allow → handler"])
+
+    class IN actor
+    class T,SA,SC,ROLE,OWN,RL decision
+    class D401,D403a,D403b,D403c,D429 deny
+    class AL service
+    class OK allow
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="callout warn">
+        <strong>Where it's NOT enforced</strong>
+        {{List anything that bypasses the check above — internal endpoints, CLI scripts, cron jobs, direct DB access. An honest list here is worth more than a perfect diagram.}}
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 5 · Data ═══════════════════════ -->
+    <section class="card" id="data">
+      <h2><span class="num">05</span> Data &amp; state</h2>
+      <p class="muted">The handful of entities that matter and how they relate. Link to the schema for the rest.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+erDiagram
+    USER ||--o{ MEMBERSHIP : has
+    WORKSPACE ||--o{ MEMBERSHIP : has
+    WORKSPACE ||--o{ RESOURCE : owns
+    USER ||--o{ RESOURCE : created
+    RESOURCE ||--o{ AUDIT_EVENT : logs
+    USER {
+        uuid id PK
+        string email
+        string role
+    }
+    MEMBERSHIP {
+        uuid user_id FK
+        uuid workspace_id FK
+        string role
+    }
+    RESOURCE {
+        uuid id PK
+        uuid workspace_id FK
+        string status
+    }
+        </pre>
+      </div>
+
+      <h3>Lifecycle of a {{resource}}</h3>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> Pending : submit
+    Pending --> Approved : {{admin}} approves
+    Pending --> Rejected : {{admin}} rejects
+    Rejected --> Draft : edit
+    Approved --> Archived : archive
+    Archived --> [*]
+        </pre>
+      </div>
+
+      <div class="grid2">
+        <div class="tile"><h4>Where data lives</h4><ul><li>{{Postgres — system of record}}</li><li>{{Redis — sessions, rate limits (ephemeral)}}</li><li>{{S3 — uploads}}</li></ul></div>
+        <div class="tile"><h4>Sensitive data</h4><ul><li>{{PII fields and how they're protected}}</li><li>{{Secrets: where they're sourced (never in the repo)}}</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 6 · Background work ═══════════════════════ -->
+    <section class="card" id="background">
+      <h2><span class="num">06</span> Background work &amp; integrations</h2>
+      <p class="muted">Anything that happens without a user waiting on it. Show retries and the dead-letter path — that's where incidents come from.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    EV[["{{order.created}}"]] --> W["{{Worker}}"]
+    W --> X{"{{Third-party}} call ok?"}
+    X -->|yes| DONE(["Mark synced"])
+    X -->|"no, retryable"| RT{"Attempts &lt; {{5}}?"}
+    RT -->|yes| BK["Backoff {{2^n s}}"] --> W
+    RT -->|no| DLQ[("Dead-letter queue")]
+    DLQ --> ALERT["🚨 Page {{on-call}}"]
+    X -->|"no, permanent"| DLQ
+
+    class EV,DLQ data
+    class W,BK service
+    class X,RT decision
+    class DONE allow
+    class ALERT deny
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Job / integration</th><th>Trigger</th><th>Retries</th><th>Idempotent?</th><th>Failure visible in</th></tr></thead>
+          <tbody>
+            <tr><td>{{sync-to-vendor}}</td><td>{{order.created}}</td><td>{{5, exp backoff}}</td><td><span class="badge ok">yes</span></td><td>{{dashboard / alert}}</td></tr>
+            <tr><td>{{nightly-report}}</td><td>{{cron 02:00}}</td><td>{{none}}</td><td><span class="badge warn">partial</span></td><td>{{logs only}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 7 · Deployment ═══════════════════════ -->
+    <section class="card" id="deployment">
+      <h2><span class="num">07</span> Deployment &amp; environments</h2>
+      <p class="muted">How code gets from a branch to production, and what differs per environment.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    PR["Pull request"] --> CI{"CI green?"}
+    CI -->|no| FIX["Fix &amp; push"] --> PR
+    CI -->|yes| REV{{"Review approved"}}
+    REV --> MERGE["Merge to main"]
+    MERGE --> STG["Deploy {{staging}}"]
+    STG --> SMOKE{"Smoke tests pass?"}
+    SMOKE -->|no| RB["Roll back"]
+    SMOKE -->|yes| PRD["Deploy {{production}}"]
+
+    class PR,MERGE,STG,PRD service
+    class CI,SMOKE decision
+    class REV actor
+    class FIX,RB deny
+        </pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Environment</th><th>URL</th><th>Data</th><th>Secrets from</th><th>Who can deploy</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge info">dev</span></td><td><code>{{localhost:3000}}</code></td><td>{{seeded fixtures}}</td><td>{{Doppler dev}}</td><td>{{anyone}}</td></tr>
+            <tr><td><span class="badge warn">staging</span></td><td><code>{{staging.example.com}}</code></td><td>{{anonymised copy}}</td><td>{{Doppler stg}}</td><td>{{CI on merge}}</td></tr>
+            <tr><td><span class="badge danger">production</span></td><td><code>{{app.example.com}}</code></td><td>{{live}}</td><td>{{Doppler prd}}</td><td>{{CI after smoke}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 8 · Operations ═══════════════════════ -->
+    <section class="card" id="operations">
+      <h2><span class="num">08</span> Running it &amp; what breaks</h2>
+      <div class="grid2">
+        <div class="tile"><h4>Run locally</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">{{git clone … && npm ci
+npm run env-sync
+npm run dev}}</pre></div>
+        <div class="tile"><h4>Test</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">{{npm test
+npm run test:e2e}}</pre></div>
+        <div class="tile"><h4>Known failure modes</h4><ul><li>{{Symptom → likely cause → fix}}</li><li>{{…}}</li></ul></div>
+        <div class="tile"><h4>Dashboards &amp; logs</h4><ul><li><a href="#">{{Metrics dashboard}}</a></li><li><a href="#">{{Log search}}</a></li><li><a href="#">{{Alert runbook}}</a></li></ul></div>
+      </div>
+      <div class="callout danger">
+        <strong>Do not</strong>
+        {{The one or two things that look safe and aren't — e.g. "never run migrations against prd by hand", "the admin token is not rate-limited".}}
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ 9 · Glossary & changelog ═══════════════════════ -->
+    <section class="card" id="glossary">
+      <h2><span class="num">09</span> Glossary &amp; changelog</h2>
+      <div class="grid2">
+        <div>
+          <h3 style="margin-top:0">Terms</h3>
+          <dl>
+            <dt><strong>{{Workspace}}</strong></dt><dd class="muted">{{A tenant boundary; all permissions are scoped to one.}}</dd>
+            <dt><strong>{{Resource}}</strong></dt><dd class="muted">{{The primary thing users create and manage.}}</dd>
+          </dl>
+        </div>
+        <div>
+          <h3 style="margin-top:0">Doc changelog</h3>
+          <ul class="changelog">
+            <li><time>{{YYYY-MM-DD}}</time> {{Initial version}} — {{author}}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  {{App Name}} · generated from <code>app-doc-template.html</code> · diagrams by Mermaid · press <kbd>t</kbd> to toggle theme
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  /* ───────── Diagram palettes (one per theme) ───────── */
+  const PALETTES = {
+    light: {
+      actor:    "fill:#fff3c4,stroke:#b7791f,stroke-width:2px,color:#5c3d00",
+      service:  "fill:#dbe4ff,stroke:#4f6df5,stroke-width:2px,color:#1b2a6b",
+      data:     "fill:#e6e0ff,stroke:#7c5cff,stroke-width:2px,color:#2d1e73",
+      external: "fill:#e9ecf3,stroke:#7a8199,stroke-width:2px,stroke-dasharray:5 3,color:#2c3140",
+      decision: "fill:#ffe9a8,stroke:#d98c07,stroke-width:2px,color:#4d3300",
+      allow:    "fill:#d3f5e1,stroke:#1f9d55,stroke-width:2px,color:#0d4a28",
+      deny:     "fill:#ffd9d6,stroke:#d7423b,stroke-width:2px,color:#6b1612",
+    },
+    dark: {
+      actor:    "fill:#4a3c12,stroke:#f2b544,stroke-width:2px,color:#ffe9a8",
+      service:  "fill:#23306b,stroke:#7b93ff,stroke-width:2px,color:#dbe4ff",
+      data:     "fill:#2d2461,stroke:#a48cff,stroke-width:2px,color:#e6e0ff",
+      external: "fill:#262b3a,stroke:#9aa0b4,stroke-width:2px,stroke-dasharray:5 3,color:#e8eaf2",
+      decision: "fill:#5a4200,stroke:#f2b544,stroke-width:2px,color:#fff1c2",
+      allow:    "fill:#0f3d24,stroke:#3ccf7a,stroke-width:2px,color:#d3f5e1",
+      deny:     "fill:#4d1714,stroke:#ff6b63,stroke-width:2px,color:#ffd9d6",
+    },
+  };
+  const LEGEND = [["actor","people / clients"],["service","our code"],["data","storage / queues"],["external","third-party"],["decision","check / branch"],["allow","allowed / success"],["deny","denied / failure"]];
+
+  const root = document.documentElement;
+  const mql = matchMedia("(prefers-color-scheme: dark)");
+  const effective = () => root.dataset.theme === "auto" ? (mql.matches ? "dark" : "light") : root.dataset.theme;
+
+  /* ───────── Theme toggle: auto → light → dark → auto ───────── */
+  try { const saved = localStorage.getItem("doc-theme"); if (saved) root.dataset.theme = saved; } catch {}
+  const label = document.getElementById("themeLabel");
+  const paint = () => { label.textContent = root.dataset.theme === "auto" ? "Auto" : root.dataset.theme === "dark" ? "Dark" : "Light"; };
+  const cycle = () => {
+    root.dataset.theme = { auto: "light", light: "dark", dark: "auto" }[root.dataset.theme];
+    try { localStorage.setItem("doc-theme", root.dataset.theme); } catch {}
+    paint(); renderAll();
+  };
+  document.getElementById("themeToggle").addEventListener("click", cycle);
+  addEventListener("keydown", e => { if (e.key === "t" && !/input|textarea/i.test(e.target.tagName)) cycle(); });
+  mql.addEventListener("change", () => { if (root.dataset.theme === "auto") renderAll(); });
+  paint();
+
+  /* ───────── Mermaid rendering (re-rendered per theme) ───────── */
+  const blocks = [...document.querySelectorAll("pre.mermaid")].map((pre, i) => {
+    const src = [...pre.childNodes].map(n => n.nodeType === 3 ? n.data : n.tagName === "BR" ? "<br/>" : n.textContent).join("").trim();
+    const holder = document.createElement("div");
+    holder.className = "mermaid-out";
+    pre.replaceWith(holder);
+    return { id: `mmd-${i}`, src, holder, kind: src.split(/\s/)[0] };
+  });
+
+  function classDefs(mode) {
+    return Object.entries(PALETTES[mode]).map(([k, v]) => `classDef ${k} ${v}`).join("\n");
+  }
+
+  async function renderAll() {
+    const mode = effective();
+    const cs = getComputedStyle(root);
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "base",
+      securityLevel: "loose",
+      fontFamily: cs.getPropertyValue("--font"),
+      flowchart: { htmlLabels: true, curve: "basis", padding: 12 },
+      sequence: { actorMargin: 40, mirrorActors: false },
+      themeVariables: {
+        background: "transparent",
+        primaryColor: cs.getPropertyValue("--bg-elev").trim(),
+        primaryTextColor: cs.getPropertyValue("--fg").trim(),
+        primaryBorderColor: cs.getPropertyValue("--line").trim(),
+        lineColor: cs.getPropertyValue("--fg-muted").trim(),
+        textColor: cs.getPropertyValue("--fg").trim(),
+        secondaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        tertiaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        clusterBkg: cs.getPropertyValue("--bg-elev").trim(),
+        clusterBorder: cs.getPropertyValue("--line").trim(),
+        edgeLabelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        actorBkg: cs.getPropertyValue("--bg-elev").trim(),
+        actorBorder: cs.getPropertyValue("--accent").trim(),
+        actorTextColor: cs.getPropertyValue("--fg").trim(),
+        signalColor: cs.getPropertyValue("--fg").trim(),
+        signalTextColor: cs.getPropertyValue("--fg").trim(),
+        noteBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        noteTextColor: cs.getPropertyValue("--fg").trim(),
+        attributeBackgroundColorOdd: cs.getPropertyValue("--bg-elev").trim(),
+        attributeBackgroundColorEven: cs.getPropertyValue("--bg-sunk").trim(),
+        fontSize: "14px",
+        /* shared node/label defaults (ER, state, class diagrams read these) */
+        darkMode: mode === "dark",
+        mainBkg: cs.getPropertyValue("--bg-elev").trim(),
+        nodeBorder: cs.getPropertyValue("--accent").trim(),
+        nodeTextColor: cs.getPropertyValue("--fg").trim(),
+        labelColor: cs.getPropertyValue("--fg").trim(),
+        labelTextColor: cs.getPropertyValue("--fg").trim(),
+        labelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        titleColor: cs.getPropertyValue("--fg").trim(),
+        /* state diagrams */
+        stateBkg: cs.getPropertyValue("--bg-elev").trim(),
+        stateLabelColor: cs.getPropertyValue("--fg").trim(),
+        altBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeTitleBackground: cs.getPropertyValue("--bg-elev").trim(),
+        compositeBorder: cs.getPropertyValue("--line").trim(),
+        transitionColor: cs.getPropertyValue("--fg-muted").trim(),
+        transitionLabelColor: cs.getPropertyValue("--fg").trim(),
+        labelBoxBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        labelBoxBorderColor: cs.getPropertyValue("--line").trim(),
+        specialStateColor: cs.getPropertyValue("--accent").trim(),
+        innerEndBackground: cs.getPropertyValue("--accent").trim(),
+        /* ER diagrams */
+        rowOdd: cs.getPropertyValue("--bg-elev").trim(),
+        rowEven: cs.getPropertyValue("--bg-sunk").trim(),
+      },
+    });
+    for (const b of blocks) {
+      const isFlow = /^(flowchart|graph)\b/.test(b.kind);
+      const code = isFlow ? `${b.src}\n${classDefs(mode)}` : b.src;
+      try {
+        const { svg } = await mermaid.render(`${b.id}-${mode}-${Date.now()}`, code);
+        b.holder.innerHTML = svg;
+        if (b.holder.closest(".diagram")?.classList.contains("scroll")) {
+          const el = b.holder.querySelector("svg"), w = el?.viewBox?.baseVal?.width;
+          if (el && w) { el.style.maxWidth = "none"; el.style.width = Math.ceil(w) + "px"; }
+        }
+      } catch (err) {
+        b.holder.innerHTML = `<pre style="color:var(--danger);white-space:pre-wrap;font-family:var(--mono);font-size:.8rem">Mermaid error in diagram ${b.id}:\n${err.message || err}</pre>`;
+      }
+    }
+    paintLegends(mode);
+  }
+
+  function paintLegends(mode) {
+    document.querySelectorAll("[data-legend]").forEach(el => {
+      el.innerHTML = LEGEND.map(([k, t]) => {
+        const fill = PALETTES[mode][k].match(/fill:([^,]+)/)[1];
+        const stroke = PALETTES[mode][k].match(/stroke:([^,]+)/)[1];
+        return `<span><i style="background:${fill};border-color:${stroke}"></i>${t}</span>`;
+      }).join("");
+    });
+  }
+
+  /* ───────── Diagram tools: copy source / open svg ───────── */
+  document.querySelectorAll(".diagram").forEach((d, i) => {
+    d.querySelectorAll(".tools button").forEach(btn => btn.addEventListener("click", () => {
+      const b = blocks[i];
+      if (btn.dataset.act === "copy") {
+        navigator.clipboard?.writeText(b.src).then(() => { btn.textContent = "copied"; setTimeout(() => btn.textContent = "copy source", 1200); });
+      } else {
+        const svg = b.holder.querySelector("svg"); if (!svg) return;
+        // outerHTML is HTML serialisation (<br>, unclosed tags) — invalid as standalone XML.
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        clone.style.background = getComputedStyle(root).getPropertyValue("--bg-sunk").trim();
+        clone.style.maxWidth = "none";
+        const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+        open(URL.createObjectURL(blob), "_blank");
+      }
+    }));
+  });
+
+  /* ───────── Sidebar TOC + scroll spy ───────── */
+  const toc = document.getElementById("toc");
+  const sections = [...document.querySelectorAll("main section[id]")];
+  toc.innerHTML = sections.map(s => `<a href="#${s.id}">${s.querySelector("h2")?.textContent.replace(/^\d+\s*/, "").trim() ?? s.id}</a>`).join("");
+  const links = [...toc.querySelectorAll("a")];
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) links.forEach(l => l.classList.toggle("active", l.hash === `#${e.target.id}`)); });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  sections.forEach(s => spy.observe(s));
+
+  renderAll();
+</script>
+</body>
+</html>

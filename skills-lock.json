@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "design-doc-mermaid": {
+      "source": "spillwavesolutions/design-doc-mermaid",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "36e44f50fdbfd9e0868c1237ba879395646f42f7db780fe59f1bf4c35947869b"
+    },
+    "karpathy-guidelines": {
+      "source": "forrestchang/andrej-karpathy-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "github-triage": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "variant-analysis": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "differential-review": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "fp-check": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "resolving-merge-conflicts": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "triage": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "semgrep": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "sarif-parsing": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    },
+    "git-guardrails-claude-code": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "note": "installed by manual vetting; no CLI-computed hash — see docs/skills.md"
+    }
+  }
+}
