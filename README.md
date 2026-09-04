@@ -1,6 +1,6 @@
-# Foreman
+# Nightshift
 
-Foreman is not a software project. It is the working environment for doing
+Nightshift is not a software project. It is the working environment for doing
 tracked engineering work **in other repositories**: one command turns a queue
 of ready tickets into reviewed pull requests, with the tracker as the system
 of record throughout.

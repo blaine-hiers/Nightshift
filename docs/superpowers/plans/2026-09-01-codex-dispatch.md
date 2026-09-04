@@ -18,7 +18,7 @@
 - Exactly one review→fix round; after it, unresolved findings → PR comment + Linear **Blocked**.
 - Budget row (PROVISIONAL): 30 min wall-clock, 2 attempts, max 2 concurrent.
 - `Tier/Codex` is invalid on `Repo/Managed-Platform` issues.
-- All commits in this plan are to the Foreman repo, from its root. Commit messages end with the standard Co-Authored-By / Claude-Session trailer used by this session.
+- All commits in this plan are to the Nightshift repo, from its root. Commit messages end with the standard Co-Authored-By / Claude-Session trailer used by this session.
 - This machine's Bash tool is Git Bash; `$SCRATCH` below means the session scratchpad directory printed in the system prompt.
 
 ---

@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-Foreman is not a software project. It is the **main working environment** for doing tracked work — investigating and fixing issues, and running projects — in **other** repositories.
+Nightshift is not a software project. It is the **main working environment** for doing tracked work — investigating and fixing issues, and running projects — in **other** repositories.
 
 **Linear is the system of record.** Every ticket, issue, project, and status update lives in Linear, not in this repo, not in GitHub Issues, and not in local TODO files. Work starts from a Linear issue and ends with that Linear issue updated. If a piece of work isn't in Linear, the first step is to put it there.
 
-Foreman never tracks the code of the repos being worked on — only the skills and docs that encode the workflow.
+Nightshift never tracks the code of the repos being worked on — only the skills and docs that encode the workflow.
 
 - `.claude/skills/` — the workflow, as skills (tracked)
 - `docs/` — reference: `workspace.md`, `skills.md`, `pipeline.html` (flowchart map of the whole workflow), `templates/app-doc-template.html` (themed, diagram-driven "how this app works" doc template used to write one per target repo), `runs/` (run reports), `superpowers/` (plans, specs, research)
@@ -31,7 +31,7 @@ Every issue carries a type, a repo, and a tier. The first two say *what* and *wh
 | Dimension | Values | Why it exists |
 |---|---|---|
 | **Type** (flat) | `Bug`, `Feature`, `Improvement` | What kind of change. |
-| **`Repo/…`** (group, exclusive, **open set**) | `api-server`, `docs-site`, `Managed-Platform`, `Foreman` — add a child the first time a new repo gets an issue | The repo the fix lands in. **Project ≠ repo** — the Nimbus project spans two repos, and many issues have no project at all. |
+| **`Repo/…`** (group, exclusive, **open set**) | `api-server`, `docs-site`, `Managed-Platform`, `Nightshift` — add a child the first time a new repo gets an issue | The repo the fix lands in. **Project ≠ repo** — the Nimbus project spans two repos, and many issues have no project at all. |
 | **`Tier/…`** (group, exclusive) | `Haiku`, `Sonnet`, `Opus`, `Fable`, `Codex` | The model tier (see *Prompt and Model Selection*), recorded once instead of re-derived per run. |
 | **`Security`** (flat) | — | Credential handling, secret redaction, data exposure, access-tier classification. Seeds `variant-analysis` sweeps. |
 
@@ -68,7 +68,7 @@ A `Todo` issue should already carry a Repo and a Tier — set both when you file
 2. **Set status to In Progress** and assign it if unassigned.
 3. **Get a worktree.** If `workspace/<repo-name>` doesn't exist yet, clone it once: `git clone <url> workspace/<repo-name>`. That clone is the **base** — don't work in it directly. Add a worktree per issue instead (`docs/workspace.md`).
 4. **Branch using Linear's branch name.** Every issue exposes `gitBranchName` (e.g. `dev/ENG-24-worker-state-probeworkerstate-rewrites-state-file`). Use it verbatim — that's what auto-links the PR back to the issue.
-5. **Follow the target repo's own conventions**: read its CLAUDE.md/CONTRIBUTING/README first, use its build and test tooling, match its code style. Foreman conventions do not apply inside a target repo.
+5. **Follow the target repo's own conventions**: read its CLAUDE.md/CONTRIBUTING/README first, use its build and test tooling, match its code style. Nightshift conventions do not apply inside a target repo.
 6. **Reproduce before fixing**, and verify with the target repo's own test suite before claiming it's done.
 7. **Open the PR** against the target repo's remote (`gh pr create --head <branch>`), referencing the issue identifier (`ENG-24`) in the title or body. Open it **ready for review**, not draft — draft is only for a PR that still owes human-only work, and the body must say what. Then **auto-review it**: dispatch a fresh reviewer subagent (PR-review template in `.claude/skills/queue-drain/references/prompts.md`) that posts its verdict on the PR with `gh pr review`.
 8. **Close the loop in Linear**: comment with the PR link and a short root-cause/fix summary, move to In Review, then Done once merged and verified.
@@ -100,7 +100,7 @@ Record the choice as the issue's `Tier/…` label so the next run reads it inste
 - One subagent = one Linear issue. Give it the issue identifier, the Linear description verbatim, its branch name (`gitBranchName`), and the **worktree path** you created for it.
 - Set the model per ticket, not per batch: three doc-drift tickets go to `haiku` even if a fourth ticket in the same batch needs `opus`.
 - **Create every worktree from the main thread before dispatching**, then hand each subagent its path. Worktrees are what make concurrent tickets safe — two agents running `npm test` in one checkout will fight over build state and untracked fixtures even when the tickets touch different files.
-- **Do not use `isolation: "worktree"` for this.** That flag gives the subagent a worktree of *Foreman itself*, and since `.gitignore` excludes `workspace/`, that tree contains no target repo at all — the subagent lands somewhere with nothing to work on. Use `git worktree add` against the target repo (`docs/workspace.md`).
+- **Do not use `isolation: "worktree"` for this.** That flag gives the subagent a worktree of *Nightshift itself*, and since `.gitignore` excludes `workspace/`, that tree contains no target repo at all — the subagent lands somewhere with nothing to work on. Use `git worktree add` against the target repo (`docs/workspace.md`).
 - The main thread stays the coordinator: it owns the Linear status moves, the worktree teardown, and the final report, and relays each subagent's result (subagent output isn't shown to the user).
 
 ### Draining the Queue
@@ -128,7 +128,7 @@ first worktree of a session, before a batch sweep, and before running
 
 Two nested git repos are in play at all times. Before any git command, confirm which repo the working directory is in:
 
-- `git` commands run from the Foreman root affect **this** repo — only skill/config changes belong here.
+- `git` commands run from the Nightshift root affect **this** repo — only skill/config changes belong here.
 - `git` commands run from `workspace/<repo-name>` (or any worktree under it) affect the **target** repo — all issue-fix branches, commits, and pushes belong there.
 - Never `git add workspace/` from the root; if workspace contents show up in `git status` at the root, the `.gitignore` is broken — fix that first.
 - Commit and push from the **worktree**, never the base clone. The base clone stays on `main` and clean; it exists to be branched from and fetched into.

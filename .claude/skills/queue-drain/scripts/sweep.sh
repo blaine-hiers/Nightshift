@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Queue-drain stage 0: sweep worktrees under a base clone.
-# A worktree is REMOVABLE only when ALL hold (Foreman CLAUDE.md):
+# A worktree is REMOVABLE only when ALL hold (Nightshift CLAUDE.md):
 #   1. git status --porcelain is empty
 #   2. HEAD is pushed to its branch on origin
 #   3. the PR for that branch is MERGED (gh; skippable with --skip-pr-check)

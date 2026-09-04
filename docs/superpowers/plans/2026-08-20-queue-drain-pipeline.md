@@ -12,23 +12,23 @@
 
 Copied from the spec — every task implicitly includes these:
 
-- Everything lands in the **Foreman repo**; nothing is written to the knowledge vault.
+- Everything lands in the **Nightshift repo**; nothing is written to the knowledge vault.
 - Linear team is **Engineering** (issue keys `ENG-N`); queue = status **Todo**, unblocked.
-- Model tiers verbatim from Foreman CLAUDE.md: haiku = mechanical, sonnet = ordinary default, opus = justified only; **default down, not up**.
+- Model tiers verbatim from Nightshift CLAUDE.md: haiku = mechanical, sonnet = ordinary default, opus = justified only; **default down, not up**.
 - **WIP cap: at most 5 tickets in flight** per drain; a drain does not start when >~5 agent PRs from prior runs sit unreviewed.
 - **Per-ticket budget: 60 minutes wall-clock / 2 attempts**, then the honest-failure lane.
 - Every agent PR opens as a **draft**; only the coordinator marks it ready, after the verify gate.
 - Reviewer subagents get **fresh context** (diff + issue + plan only) and are **scoped to correctness findings**.
 - Diffs touching CI/workflow files, hooks, permissions, or credential handling are a **high-risk class** flagged for explicit human attention.
-- Subagents **never** run with permission-skip flags, and **never** use `isolation: "worktree"` (it would worktree Foreman itself).
+- Subagents **never** run with permission-skip flags, and **never** use `isolation: "worktree"` (it would worktree Nightshift itself).
 - Doppler: default **no `.env`**; opt-in via `npm run env-sync` inside the worktree; **`dev` config only, never `prd`**.
-- Compounding is **skills-only**, inside Foreman; retro is mandatory; retro records metrics (cycle time, escalation rate).
-- Commit messages: short imperative subject, plain description (Foreman git convention).
+- Compounding is **skills-only**, inside Nightshift; retro is mandatory; retro records metrics (cycle time, escalation rate).
+- Commit messages: short imperative subject, plain description (Nightshift git convention).
 
 ## File Structure
 
 ```
-Foreman/
+Nightshift/
 ├── .claude/skills/queue-drain/
 │   ├── SKILL.md                    # Task 2 — orchestrator: stages 0–7, gates, WIP cap
 │   ├── references/
@@ -146,7 +146,7 @@ Create `.claude/skills/queue-drain/scripts/sweep.sh`:
 ```bash
 #!/usr/bin/env bash
 # Queue-drain stage 0: sweep worktrees under a base clone.
-# A worktree is REMOVABLE only when ALL hold (Foreman CLAUDE.md):
+# A worktree is REMOVABLE only when ALL hold (Nightshift CLAUDE.md):
 #   1. git status --porcelain is empty
 #   2. HEAD is pushed to its branch on origin
 #   3. the PR for that branch is MERGED (gh; skippable with --skip-pr-check)
@@ -265,7 +265,7 @@ implement and review; they never write to Linear.
 - All PRs open as **drafts**; only you mark ready, only after the verify
   gate passes.
 - Never dispatch a subagent with permission-skip flags; never use
-  `isolation: "worktree"` (it worktrees Foreman, not the target repo).
+  `isolation: "worktree"` (it worktrees Nightshift, not the target repo).
 - Honest failure is a valid output. Never fake a green gate.
 
 ## Stages
@@ -366,7 +366,7 @@ explicit repo name in the description, or an unambiguous match to a clone
 in `workspace/`. Cannot resolve → **needs-info**.
 
 ## 2. Actionable without the original conversation?
-The Foreman standard: the description is the prompt. Missing repro
+The Nightshift standard: the description is the prompt. Missing repro
 steps, undefined acceptance criteria, or an ambiguous ask → **needs-info**.
 Post this comment (fill the blanks, keep it short):
 
@@ -391,7 +391,7 @@ propose child issues instead of a plan.
 Otherwise → **ready**.
 
 ## Tier assignment (ready tickets)
-Foreman CLAUDE.md table, verbatim. Default DOWN, not up:
+Nightshift CLAUDE.md table, verbatim. Default DOWN, not up:
 
 | Tier | Use for |
 |---|---|
@@ -407,7 +407,7 @@ Show the human this table, then proceed (sanity scan, not a gate):
 | ENG-N | … | ready / needs-plan / needs-info / decompose | haiku/sonnet/opus/— | … |
 ```
 
-- [ ] **Step 2: Verify** — check the three questions match the spec's Triage section order and wording intent; check the tier table matches Foreman CLAUDE.md's "Prompt and Model Selection" table meaning; check `needs-info` never advances and `fp-check` rides on `ready`. Fix inline.
+- [ ] **Step 2: Verify** — check the three questions match the spec's Triage section order and wording intent; check the tier table matches Nightshift CLAUDE.md's "Prompt and Model Selection" table meaning; check `needs-info` never advances and `fp-check` rides on `ready`. Fix inline.
 
 - [ ] **Step 3: Commit**
 
@@ -670,10 +670,10 @@ run metrics, and the docs/runs report the next drain's WIP check reads."
 
 ---
 
-### Task 7: Wire into Foreman CLAUDE.md
+### Task 7: Wire into Nightshift CLAUDE.md
 
 **Files:**
-- Modify: `CLAUDE.md` (Foreman root — add a section after "Working an Issue")
+- Modify: `CLAUDE.md` (Nightshift root — add a section after "Working an Issue")
 
 **Interfaces:**
 - Consumes: the finished skill (Tasks 1–6).
@@ -681,7 +681,7 @@ run metrics, and the docs/runs report the next drain's WIP check reads."
 
 - [ ] **Step 1: Add the section**
 
-Insert into Foreman `CLAUDE.md`, after the "Multiple Tickets at Once" section:
+Insert into Nightshift `CLAUDE.md`, after the "Multiple Tickets at Once" section:
 
 ```markdown
 ### Draining the Queue
@@ -719,7 +719,7 @@ git commit -m "Point CLAUDE.md at the queue-drain skill"
 
 - [ ] **Step 1: Read-only live fetch**
 
-From Foreman, with Linear MCP available: run stages 1–2 for real —
+From Nightshift, with Linear MCP available: run stages 1–2 for real —
 `list_issues` (team Engineering, Todo), classify per `references/triage.md`, and produce the triage table. **No Linear writes** (no comments, no status moves) — this is a dry run. Confirm: every issue got exactly one class; tier assigned to every `ready`; any unresolvable-repo issue classed `needs-info`.
 
 - [ ] **Step 2: Tabletop stages 3–7**

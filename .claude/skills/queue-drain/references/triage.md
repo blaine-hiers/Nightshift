@@ -37,7 +37,7 @@ Classify those **out-of-scope**: no status change, no comment, but list
 them in the triage table so the human sees they were seen and skipped.
 
 ## 2. Actionable without the original conversation?
-The Foreman standard: the description is the prompt. Missing repro
+The Nightshift standard: the description is the prompt. Missing repro
 steps, undefined acceptance criteria, or an ambiguous ask → **needs-info**.
 Post this comment via `save_comment` (fill the blanks, keep it short):
 
@@ -87,7 +87,7 @@ do not re-derive it.** The label exists so this judgment is made once and
 stays reviewable across runs instead of being re-litigated by every drain.
 
 Derive a tier only when the label is absent, using the table below
-(Foreman CLAUDE.md, verbatim — default DOWN, not up), then write it
+(Nightshift CLAUDE.md, verbatim — default DOWN, not up), then write it
 back. needs-plan tickets get a tier too — plan-gate.md's planning-subagent
 dispatch rule reads it to pick sonnet vs opus. needs-info, blocked,
 decompose, and out-of-scope tickets get "—" (no tier, no label write):

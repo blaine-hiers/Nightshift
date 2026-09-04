@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Foreman — How It Works</title>
+<title>Nightshift — How It Works</title>
 <!-- Built from docs/templates/app-doc-template.html. Edit the <pre class="mermaid"> blocks; keep the shared node classes (actor/service/data/external/decision/allow/deny). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -178,8 +178,8 @@
 <body>
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="brand"><span class="logo">🐛</span> Foreman</div>
-    <span class="meta-chip">your-org/Foreman</span>
+    <div class="brand"><span class="logo">🐛</span> Nightshift</div>
+    <span class="meta-chip">your-org/Nightshift</span>
     <span class="meta-chip">Linear · Engineering</span>
     <div class="spacer"></div>
     <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="true" title="Toggle diagram motion (m)">
@@ -200,8 +200,8 @@
 
   <main>
     <div class="hero">
-      <h1>How Foreman works</h1>
-      <p class="lede">Foreman is not a software project. It's the working environment that turns <strong>Linear issues</strong> into <strong>pull requests against other repos</strong>. The one thing to understand first: Linear is the system of record — work starts from a Linear issue and ends with that issue updated, and nothing here tracks the target repos' code, only the skills and docs that encode the workflow.</p>
+      <h1>How Nightshift works</h1>
+      <p class="lede">Nightshift is not a software project. It's the working environment that turns <strong>Linear issues</strong> into <strong>pull requests against other repos</strong>. The one thing to understand first: Linear is the system of record — work starts from a Linear issue and ends with that issue updated, and nothing here tracks the target repos' code, only the skills and docs that encode the workflow.</p>
       <div class="facts">
         <div class="fact"><div class="k">Tracker</div><div class="v">linear.app/your-workspace</div></div>
         <div class="fact"><div class="k">Issue key</div><div class="v">ENG-NN</div></div>
@@ -215,7 +215,7 @@
     <!-- ═══════════════════════ 1 · Big picture ═══════════════════════ -->
     <section class="card" id="overview">
       <h2><span class="num">01</span> Big picture</h2>
-      <p class="muted">Three systems, one direction of flow. Linear says what to do, Foreman does it in a throwaway worktree, GitHub is where the fix lands — and the trail is written back to Linear.</p>
+      <p class="muted">Three systems, one direction of flow. Linear says what to do, Nightshift does it in a throwaway worktree, GitHub is where the fix lands — and the trail is written back to Linear.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
@@ -225,7 +225,7 @@ flowchart TB
         I["Issue<br/>description = the prompt<br/>Type · Repo/ · Tier/ · Security"]
         ST["Status + comment trail"]
     end
-    subgraph BS["🛠️ Foreman"]
+    subgraph BS["🛠️ Nightshift"]
         CO["Coordinator<br/>main Claude session"]
         SK["Skills<br/>.claude/skills/"]
         SUB["Claude subagents<br/>haiku · sonnet · opus · fable"]
@@ -463,7 +463,7 @@ sequenceDiagram
     <!-- ═══════════════════════ 4 · Permissions ═══════════════════════ -->
     <section class="card" id="permissions">
       <h2><span class="num">04</span> Permissions &amp; access model</h2>
-      <p class="muted">Who may write where. Foreman has no auth system of its own — the access model is a set of rules in <code>CLAUDE.md</code>, and the matrix below is what they add up to.</p>
+      <p class="muted">Who may write where. Nightshift has no auth system of its own — the access model is a set of rules in <code>CLAUDE.md</code>, and the matrix below is what they add up to.</p>
 
       <h3>Roles</h3>
       <div class="grid2">
@@ -490,7 +490,7 @@ sequenceDiagram
             <tr><td>Sync <code>.env</code> from Doppler (dev)</td><td><span class="yes">✓</span></td><td><span class="cond">⁷</span></td><td><span class="cond">⁷</span></td><td><span class="cond">¹¹</span></td><td><span class="no">✗</span></td><td>workspace.md › Secrets</td></tr>
             <tr><td>Touch <code>prd</code> config</td><td><span class="cond">⁸</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>"dev only. Never prd."</td></tr>
             <tr><td>Hold <code>DOPPLER_TOKEN</code></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>directory scope keeps it in the CLI store</td></tr>
-            <tr><td>Commit to Foreman itself</td><td><span class="yes">✓</span></td><td><span class="cond">⁹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Git Discipline</td></tr>
+            <tr><td>Commit to Nightshift itself</td><td><span class="yes">✓</span></td><td><span class="cond">⁹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Git Discipline</td></tr>
           </tbody>
         </table>
       </div>
@@ -527,7 +527,7 @@ flowchart TD
     SCOPE -->|"yes — create, comment, status"| OK2(["Allow"])
     SCOPE -->|"no — close/cancel/reassign others' issues"| ASK["Ask the human first"]
     TGT -->|"git"| CWD{"Which repo is cwd in?"}
-    CWD -->|"Foreman root"| BSR{"Touching workspace/?"}
+    CWD -->|"Nightshift root"| BSR{"Touching workspace/?"}
     BSR -->|yes| D3["Deny — .gitignore is broken; fix that first"]
     BSR -->|no| OK3(["Allow — skills/docs commits"])
     CWD -->|"base clone"| D4["Deny — never work in the base clone"]
@@ -624,7 +624,7 @@ stateDiagram-v2
       </div>
 
       <div class="grid2">
-        <div class="tile"><h4>Where state lives</h4><ul><li><strong>Linear</strong> — issue status, labels, comments, project descriptions (source of truth)</li><li><strong>Target repo on GitHub</strong> — branches, PRs, CI</li><li><strong>Disk</strong> — base clones + worktrees (ephemeral, gitignored)</li><li><strong>docs/runs/</strong> — the only state Foreman commits about a run</li><li><strong>Scratchpad</strong> — Codex <code>.out</code>/<code>.log</code> per ticket; the session UUID inside is what the fix round resumes and the Linear comment records</li></ul></div>
+        <div class="tile"><h4>Where state lives</h4><ul><li><strong>Linear</strong> — issue status, labels, comments, project descriptions (source of truth)</li><li><strong>Target repo on GitHub</strong> — branches, PRs, CI</li><li><strong>Disk</strong> — base clones + worktrees (ephemeral, gitignored)</li><li><strong>docs/runs/</strong> — the only state Nightshift commits about a run</li><li><strong>Scratchpad</strong> — Codex <code>.out</code>/<code>.log</code> per ticket; the session UUID inside is what the fix round resumes and the Linear comment records</li></ul></div>
         <div class="tile"><h4>Sensitive data</h4><ul><li>Doppler <code>dev</code> secrets land in a worktree's <code>.env</code> only on opt-in; removed with the worktree</li><li><code>.env.example</code> carries names only, never values</li><li><code>Security</code> label marks issues touching credentials, redaction, exposure — seeds <code>variant-analysis</code> sweeps</li></ul></div>
       </div>
     </section>
@@ -731,7 +731,7 @@ flowchart LR
         <table>
           <thead><tr><th>Location</th><th>Tracked by</th><th>Holds</th><th>Secrets from</th><th>Who writes</th></tr></thead>
           <tbody>
-            <tr><td><span class="badge info">Foreman root</span></td><td>this repo</td><td>skills, docs, <code>.env.example</code> (names only)</td><td>—</td><td>coordinator, human</td></tr>
+            <tr><td><span class="badge info">Nightshift root</span></td><td>this repo</td><td>skills, docs, <code>.env.example</code> (names only)</td><td>—</td><td>coordinator, human</td></tr>
             <tr><td><span class="badge info">workspace/&lt;repo&gt;</span></td><td>target repo (<code>main</code>)</td><td>base clone — branched from, fetched into, never edited</td><td>Doppler scope set once here</td><td>coordinator (fetch only)</td></tr>
             <tr><td><span class="badge warn">.worktrees/ENG-NN</span></td><td>target repo (branch)</td><td>the fix; optional <code>.env</code></td><td>Doppler <code>dev</code> via env-sync</td><td>one subagent</td></tr>
             <tr><td><span class="badge danger">prd config</span></td><td>—</td><td>never touched by this workflow</td><td>—</td><td>nobody here</td></tr>
@@ -767,7 +767,7 @@ grep -m1 '^session id:' $SCRATCH/codex-ENG-42.log   # keep the UUID
 git -C workspace/&lt;repo&gt; worktree prune
 git worktree list    # find leftovers</pre></div>
         <div class="tile"><h4>Known failure modes</h4><ul>
-          <li>Subagent lands in an empty tree → someone used <code>isolation: "worktree"</code> (worktrees Foreman, not the target)</li>
+          <li>Subagent lands in an empty tree → someone used <code>isolation: "worktree"</code> (worktrees Nightshift, not the target)</li>
           <li>Two agents fighting over build state → they share a checkout; one worktree per ticket</li>
           <li>Flags silently dropped on the server → <code>npm run</code> strips them; call <code>node scripts/x.mjs --flag</code> directly</li>
           <li>Same blocker rediscovered every drain → a stalled issue was returned to Todo instead of an off-ramp</li>
@@ -821,7 +821,7 @@ git worktree list    # find leftovers</pre></div>
 </div>
 
 <footer>
-  Foreman · built from <code>docs/templates/app-doc-template.html</code> · diagrams by Mermaid · press <kbd>t</kbd> to toggle theme · <kbd>m</kbd> to toggle motion
+  Nightshift · built from <code>docs/templates/app-doc-template.html</code> · diagrams by Mermaid · press <kbd>t</kbd> to toggle theme · <kbd>m</kbd> to toggle motion
 </footer>
 
 <script type="module">

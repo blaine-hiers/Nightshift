@@ -48,7 +48,7 @@ implement and review; they never write to Linear.
   proof that needs infra the agent lacks) — and say exactly what is owed
   in the PR body and the Linear comment.
 - Never dispatch a subagent with permission-skip flags; never use
-  `isolation: "worktree"` (it worktrees Foreman, not the target repo).
+  `isolation: "worktree"` (it worktrees Nightshift, not the target repo).
 - Honest failure is a valid output. Never fake a green gate.
 
 ## Stages

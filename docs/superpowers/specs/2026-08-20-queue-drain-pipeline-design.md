@@ -4,11 +4,11 @@
 **Status:** Approved (brainstormed with the maintainer, sections approved individually;
 amendments A1–A7 folded in from the
 [industry scan](../research/2026-08-20-industry-scan-queue-drain.md), same day)
-**Home:** Foreman repo only. Nothing lands in the knowledge vault.
+**Home:** Nightshift repo only. Nothing lands in the knowledge vault.
 
 ## Problem
 
-Foreman's CLAUDE.md is an excellent *manual* — worktree mechanics, Linear
+Nightshift's CLAUDE.md is an excellent *manual* — worktree mechanics, Linear
 rules, model tiering, teardown discipline — plus a toolbox of 12 vetted
 third-party skills. But nothing executes the manual:
 
@@ -42,7 +42,7 @@ working, In Review → PR open, Done → merged). No new statuses.
   interactive gates and reimplements coordination the Agent tool provides.
   Noted as a *future wrapper* around the proven skill, not a starting point.
 - **Cross-repo retro into the knowledge vault wiki** — rejected; compounding is
-  skills-only, inside Foreman.
+  skills-only, inside Nightshift.
 
 ## Stages
 
@@ -119,7 +119,7 @@ Codifies CLAUDE.md exactly; coordinator owns everything shared:
    budget** (default 60 minutes wall-clock / 2 attempts; A3). Budget
    exhausted → the ticket takes the honest-failure lane, never a hang.
    One subagent = one issue = one worktree. Never `isolation: "worktree"`
-   (documented footgun — it would worktree Foreman itself, which
+   (documented footgun — it would worktree Nightshift itself, which
    contains no target repo). Subagents never run with permission-skip
    flags (`--dangerously-skip-permissions` and kin are a documented attack
    primitive; A5).
