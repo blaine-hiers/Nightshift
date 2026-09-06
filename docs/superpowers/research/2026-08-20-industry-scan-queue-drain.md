@@ -6,7 +6,7 @@ against current industry practice. Six parallel research agents; primary
 sources (vendor docs, changelogs, engineering blogs) preferred.
 
 > **Superseded in part (2026-09-04).** Nightshift has since moved its system of
-> record from Linear to **GitHub Issues** (status as an exclusive `status/…`
+> record to **GitHub Issues** (status as an exclusive `status/…`
 > label, one issue per target repo, all calls via `gh`). Vendor names, dates,
 > and citations below are left exactly as scanned — they are third-party facts
 > about the 2025–2026 market, not statements about how Nightshift works today.
