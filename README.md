@@ -1,62 +1,78 @@
 # Nightshift
 
-Nightshift is not a software project. It is the working environment for doing
-tracked engineering work **in other repositories**: one command turns a queue
-of ready tickets into reviewed pull requests, with GitHub Issues as the system
-of record throughout.
+Nightshift is not a library. It is the working environment for running agents
+against **other people's repositories** without babysitting them: one command
+turns a queue of ready tickets into reviewed pull requests, with GitHub Issues
+as the system of record from end to end.
 
-The repo tracks the workflow, never the code being worked on. Target repos are
-cloned into a gitignored `workspace/`, and each issue gets its own worktree.
-
-## The pipeline
-
-`queue-drain` runs the batch end to end:
+The repo tracks the workflow and never the code being worked on. Target repos
+are cloned into a gitignored `workspace/`, and every issue gets its own
+worktree.
 
 ```
 sweep -> fetch queue -> triage -> batched plan approval -> capped fan-out (5)
       -> fresh-context verify -> ready PRs + auto-review -> close -> retro
 ```
 
-Two properties make it safe to leave running:
+## Why it is safe to leave running
 
-- **The plan gate is batched.** Every ticket's plan is approved in one pass
-  before any of them start, so a bad batch is stopped once rather than five
-  times.
-- **Verification uses fresh context.** The agent that checks the work is not
-  the agent that did it. A model that has just argued itself into a fix is the
-  worst possible reviewer of that fix.
+Autonomous agent pipelines fail in predictable ways. Most of the design here is
+a response to one of them.
 
-## Queue invariants
+### The plan gate is batched, not per-ticket
 
-The status model exists to keep the queue drainable, and one rule carries it:
+Every ticket's plan is approved in a single pass before any of them start. A bad
+batch gets stopped once instead of five times, and the human doing the approving
+sees the whole shape of the work rather than five decontextualised plans
+arriving over twenty minutes.
+
+### Verification uses fresh context
+
+The agent that checks the work is never the agent that did it.
+
+**A model that has just argued itself into a fix is the worst possible reviewer
+of that fix.** It has spent its whole context justifying the approach, and
+asking it to find the flaw is asking it to contradict its own reasoning. A
+reviewer that never saw the original session has no such investment.
+
+### Fan-out is capped
+
+Five concurrent tickets, hard. Not because five is magic, but because an
+unbounded fan-out turns a bad plan into a bad plan applied everywhere before
+anyone notices.
+
+### Stalled work leaves the queue
+
+One rule carries the status model:
 
 > **`status/todo` means an agent can start right now with zero questions.**
 
-Anything that would make an agent stop and ask belongs in `status/needs-input`
-instead. Anything stalled on something outside the agent loop, a vendor, a
-credential, a human decision, belongs in `status/blocked`.
+Anything that would make an agent stop and ask goes to `status/needs-input`.
+Anything waiting on a vendor, a credential, or a human decision goes to
+`status/blocked`.
 
-Never leave a stalled ticket in `status/todo` or `status/in-progress`.
-`status/in-progress` with nobody working it makes "what is active"
-meaningless, and `status/todo` re-queues it
-into the next drain, which burns a fresh agent rediscovering the same blocker.
-Both off-ramps require a comment naming what is being waited on and who owns
-it, or the status is just a shrug.
+A stalled ticket left in `status/in-progress` makes "what is active"
+meaningless. Left in `status/todo` it gets re-queued into the next drain, which
+spends a fresh agent rediscovering the same blocker. Both off-ramps require a
+comment naming what is being waited on and who owns it, or the status change is
+just a shrug.
 
-## Model tiers
+## Cost discipline
 
 Every ticket carries a tier label, set once at triage so the drain reads a
-decision instead of re-deriving one. The rule is to **default down, not up**:
+decision instead of re-deriving one on every pass. The rule is **default down,
+not up**:
 
 | Tier | Use for |
 |---|---|
-| `haiku` | Mechanical, well-specified tickets: doc drift, renames, a missing guard, a one-line fix. |
-| `sonnet` | Ordinary bugfixes: reproduce, trace, patch, run tests. The normal default. |
-| `opus` | Unclear root cause, cross-cutting refactor, concurrency or security reasoning, or after a lower tier has visibly failed. |
-| `codex` | Routed through `codex-dispatch` (below). |
+| `haiku` | Mechanical and well specified: doc drift, renames, a missing guard, a one-line fix |
+| `sonnet` | Ordinary bugfixes: reproduce, trace, patch, run tests. The normal default |
+| `opus` | Unclear root cause, cross-cutting refactor, concurrency or security reasoning, or after a lower tier has visibly failed |
+| `codex` | Routed through `codex-dispatch` |
 
-Escalate only when the cheaper tier visibly fails. Per-tier ticket budgets cap
-what a single drain can spend.
+Escalation happens when a cheaper tier visibly fails, not in anticipation that
+it might. Per-tier ticket budgets cap what a single drain can spend, so a
+runaway loop is a bounded loss rather than an invoice.
 
 ## Cross-model review
 
@@ -65,39 +81,40 @@ sandboxed worktree and Claude as coordinator and reviewer. Codex reviews the
 diff first, read-only and fresh, then the Claude reviewer runs as the gating
 verdict, with one fix round per review stage.
 
-Two different models disagreeing about a diff surfaces things neither catches
-alone, and the gate stays with one of them so review never deadlocks.
+Two different models disagreeing about a diff surfaces problems neither catches
+alone. The gate deliberately stays with one of them, because review by consensus
+between two models that cannot break a tie is review that deadlocks.
 
-## Skills
+## Supply chain
 
-`.claude/skills/` holds the workflow. Two are first-party:
+`.claude/skills/` holds the workflow. Two are first-party: `queue-drain` (the
+pipeline above) and `codex-dispatch` (the cross-model path).
 
-- **queue-drain**: the batch pipeline above.
-- **codex-dispatch**: the cross-model implement-and-review path.
+The other fourteen are third-party imports from Trail of Bits, Anthropic,
+mattpocock, vercel-labs, spillwavesolutions and skills-directory. Provenance and
+licences are recorded in `docs/skills.md` and pinned in `skills-lock.json`.
 
-The remaining 14 are vetted third-party imports from Trail of Bits, mattpocock,
-Anthropic, vercel-labs, spillwavesolutions and skills-directory, with
-provenance and licences recorded in `docs/skills.md` and `skills-lock.json`.
-Every third-party skill is read file by file before installation, rejecting
-anything with external network calls, credential access, obfuscated code, or
-instructions that override user intent.
+**Every third-party skill is read file by file before installation.** Anything
+with external network calls, credential access, obfuscated code, or instructions
+that override user intent is rejected rather than sandboxed. A skill is
+instructions handed directly to a model with tool access, which makes an
+unreviewed one closer to an unreviewed dependency with shell access than to a
+config file.
 
 ## Layout
 
 ```
-.claude/skills/   the workflow, as skills
-docs/workspace.md worktree lifecycle and teardown rules
-docs/skills.md    skill inventory with provenance
-docs/pipeline.html flowchart map of the whole workflow
-docs/templates/   "how this app works" doc template, one per target repo
-docs/superpowers/ plans, specs and research behind the pipeline
-docs/runs/        run reports
-workspace/        cloned target repos (gitignored, never tracked)
-.env.example      env schema, names only, values live in Doppler
-tests/            sweep tests
+.claude/skills/    the workflow, as skills
+docs/workspace.md  worktree lifecycle and teardown rules
+docs/skills.md     skill inventory with provenance
+docs/pipeline.html flowchart of the whole workflow
+docs/templates/    "how this app works" doc template, one per target repo
+docs/superpowers/  plans, specs and research behind the pipeline
+docs/runs/         run reports
+workspace/         cloned target repos (gitignored, never tracked)
+.env.example       env schema, names only; values live in Doppler
+tests/             sweep tests
 ```
-
-## Tests
 
 ```bash
 bash tests/sweep_test.sh
