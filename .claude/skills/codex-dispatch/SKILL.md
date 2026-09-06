@@ -1,25 +1,25 @@
 ---
 name: codex-dispatch
-description: Use when a Linear issue carries the Tier/Codex label, or the user asks for OpenAI Codex to implement a Linear issue — runs the issue lifecycle with Codex as implementer and Claude as coordinator and reviewer.
+description: Use when a GitHub issue carries the tier/codex label, or the user asks for OpenAI Codex to implement a GitHub issue — runs the issue lifecycle with Codex as implementer and Claude as coordinator and reviewer.
 ---
 
 # Codex Dispatch
 
 Codex writes the code and commits; you (the coordinator) do everything
-else — every Linear write, worktree operation, push, PR creation, and
+else — every issue write, worktree operation, push, PR creation, and
 review dispatch. Codex never gets network access and never touches
-Linear or GitHub. CLI mechanics (models, efforts, timeouts, stdin
-rules) live in the vetted `codex` skill — this skill only encodes the
-Linear workflow around them.
+GitHub. CLI mechanics (models, efforts, timeouts, stdin rules) live in
+the vetted `codex` skill — this skill only encodes the issue workflow
+around them.
 
 Take only the `codex` skill's model/effort tables, its stdin rule, and
 its timeout table. Its interactive rules do **not** apply here — no
 `AskUserQuestion` for model choice or follow-ups, no per-flag permission
 prompts, no stop-and-ask before retrying, no synchronous-run preference,
-and never `resume --last`. The `Tier/Codex` label plus this skill are the
+and never `resume --last`. The `tier/codex` label plus this skill are the
 standing authorization for `--full-auto` and `--skip-git-repo-check`.
 
-**Scope guard:** `Tier/Codex` never combines with `Repo/Managed-Platform`
+**Scope guard:** `tier/codex` never combines with `managed-platform`
 (no worktree/PR flow exists there). If you find that combination,
 fix the labels via triage judgment before dispatching.
 
@@ -40,32 +40,32 @@ do not fail ticket-by-ticket against a dead CLI.
 
 ## Model and effort
 
-Read the issue description for a `codex: <model>/<effort>` line
-(triage's convention). Absent that, use `gpt-5.6-terra` / `high`.
-Valid values and compatibility rules (e.g. `ultra` only on sol/terra)
-come from the `codex` skill — on an invalid combination, fall back to
-the model's highest supported effort and say so in the Linear comment.
+Read the issue body for a `codex: <model>/<effort>` line (triage's
+convention). Absent that, use `gpt-5.6-terra` / `high`. Valid values and
+compatibility rules (e.g. `ultra` only on sol/terra) come from the `codex`
+skill — on an invalid combination, fall back to the model's highest
+supported effort and say so in the issue comment.
 
 ## Per-issue flow
 
-1. **Pick up.** `get_issue`, move to In Progress, create the worktree
-   from the base clone with `gitBranchName` — standard flow, see
-   `docs/workspace.md`.
-2. **Run Codex.** Compose the prompt: the Linear issue description
-   **verbatim**, then a conventions pointer ("Read this repo's
-   CLAUDE.md / CONTRIBUTING / README first and follow its build, test,
-   and style conventions"), then the contract: "Implement the fix, run
-   the repo's own test suite until it passes, and commit your work to
-   the current branch with a message referencing <issue-id>. Do not
-   push." Then:
+1. **Pick up.** `gh issue view <n> -R blaine-hiers/<repo> --json
+   number,title,body,labels,comments,url`, swap the status label to
+   `status/in-progress`, and create the worktree from the base clone on
+   `dev/<n>-<kebab-slug>` — standard flow, see `docs/workspace.md`.
+2. **Run Codex.** Compose the prompt: the issue body **verbatim**, then a
+   conventions pointer ("Read this repo's CLAUDE.md / CONTRIBUTING /
+   README first and follow its build, test, and style conventions"), then
+   the contract: "Implement the fix, run the repo's own test suite until
+   it passes, and commit your work to the current branch with a message
+   referencing #<n>. Do not push." Then:
 
    ```bash
    timeout <secs> codex exec -m <model> \
      --config model_reasoning_effort="<effort>" \
      --config sandbox_workspace_write.network_access=false \
      --sandbox workspace-write --full-auto --skip-git-repo-check \
-     -C <worktree-path> -o <scratchpad>/codex-<issue-id>.out \
-     "<prompt>" </dev/null 2><scratchpad>/codex-<issue-id>.log
+     -C <worktree-path> -o <scratchpad>/codex-<repo>-<n>.out \
+     "<prompt>" </dev/null 2><scratchpad>/codex-<repo>-<n>.log
    ```
 
    `<secs>` is `min(effort-table value from the codex skill, remaining
@@ -79,7 +79,7 @@ the model's highest supported effort and say so in the Linear comment.
    When it exits, capture the **session UUID** from the log:
 
    ```bash
-   grep -m1 '^session id:' <scratchpad>/codex-<issue-id>.log \
+   grep -m1 '^session id:' <scratchpad>/codex-<repo>-<n>.log \
      | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
    ```
 
@@ -87,7 +87,7 @@ the model's highest supported effort and say so in the Linear comment.
    also contain a UUID-shaped path segment, and an unanchored grep
    will pick that one.
 
-   Keep the UUID — the fix round and the Linear trail both need it.
+   Keep the UUID — the fix round and the issue trail both need it.
 3. **Verify.** `git -C <worktree> log origin/main..HEAD --oneline` must
    show at least one commit, and the repo's own test suite must pass
    when you run it yourself. An empty `-o` output file means Codex was
@@ -97,21 +97,21 @@ the model's highest supported effort and say so in the Linear comment.
    dotfiles or config, and grep the diff for credential-shaped strings
    (`-iE 'api[_-]?key|secret|token|password|BEGIN (RSA|OPENSSH)'`; use
    the repo's own secret scanner if it has one). Anything suspicious →
-   do not push; Blocked with the finding. Claude's push is the only
-   path out of the sandbox, so this check is the guard.
+   do not push; `status/blocked` with the finding. Claude's push is the
+   only path out of the sandbox, so this check is the guard.
 4. **Open the PR yourself.** Push from the worktree, then
-   `gh pr create --head <gitBranchName>` (the `--head` flag is
-   mandatory from inside a worktree), **ready for review**, body
-   opening with: "Implementation by OpenAI Codex (`<model>`/`<effort>`,
-   session `<uuid>`); coordinated and reviewed by Claude." plus the
-   issue id and root-cause/fix summary.
+   `gh pr create -R blaine-hiers/<repo> --head dev/<n>-<kebab-slug>`
+   (the `--head` flag is mandatory from inside a worktree), **ready for
+   review**, body opening with: "Implementation by OpenAI Codex
+   (`<model>`/`<effort>`, session `<uuid>`); coordinated and reviewed by
+   Claude." plus `Fixes #<n>` and a root-cause/fix summary.
 5. **Codex review first.** Before any Claude review, run a **fresh**
    Codex session over the same worktree — never `resume` the
    implementer's UUID; a session re-reading its own work rubber-stamps
    it. Same command shape as step 2, but `--sandbox read-only` in
    place of `workspace-write` (a reviewer that cannot edit) and a
-   `.review.out` output file. Prompt: the issue description verbatim,
-   then: "Review `git diff origin/main..HEAD` in this worktree for
+   `.review.out` output file. Prompt: the issue body verbatim, then:
+   "Review `git diff origin/main..HEAD` in this worktree for
    correctness against the issue above. Report only correctness
    findings (bugs, missed acceptance criteria, regressions) as
    `file:line — what breaks`, or the single line `no findings`. Do
@@ -125,8 +125,8 @@ the model's highest supported effort and say so in the Linear comment.
    subagent using the PR-review template in
    `.claude/skills/queue-drain/references/prompts.md`; it posts its
    verdict with `gh pr review`. Reviewer tier follows queue-drain's
-   rule — sonnet by default, opus if the issue carries `Security`;
-   `Tier/Codex` itself implies nothing about reviewer tier. The Codex
+   rule — sonnet by default, opus if the issue carries `security`;
+   `tier/codex` itself implies nothing about reviewer tier. The Codex
    review is advisory input that always runs first; Claude's verdict
    is the one that gates the merge.
 7. **One fix round per review stage.** If a review reports findings,
@@ -137,8 +137,8 @@ the model's highest supported effort and say so in the Linear comment.
    timeout <secs> codex exec -m <model> --config model_reasoning_effort="<effort>" \
      --config sandbox_workspace_write.network_access=false \
      --sandbox workspace-write --full-auto --skip-git-repo-check \
-     -C <worktree-path> -o <scratchpad>/codex-<issue-id>.fix.out resume <uuid> \
-     "<review findings, file:line>" </dev/null 2>><scratchpad>/codex-<issue-id>.log
+     -C <worktree-path> -o <scratchpad>/codex-<repo>-<n>.fix.out resume <uuid> \
+     "<review findings, file:line>" </dev/null 2>><scratchpad>/codex-<repo>-<n>.log
    ```
 
    Re-pass the same model, effort, sandbox, and worktree — without
@@ -149,22 +149,23 @@ the model's highest supported effort and say so in the Linear comment.
    Re-verify (step 3), push, and re-run that stage's review once
    more. Each review stage — Codex's (step 5) and Claude's (step 6) —
    gets at most one fix round. If a stage still holds findings after
-   its round: comment the unresolved list on the PR, move the Linear
-   issue to **Blocked** with the trail — say it is waiting on a human
+   its round: comment the unresolved list on the PR, swap the issue to
+   **`status/blocked`** with the trail — say it is waiting on a human
    to re-tier or re-scope — keep the worktree, stop. There is no
    second fix round for a stage.
-8. **Close out.** `save_comment` on the issue: root cause, PR link,
+8. **Close out.** `gh issue comment` on the issue: root cause, PR link,
    both review verdicts (Codex review + Claude reviewer), the Codex
    session UUIDs (implementer and reviewer), model/effort actually
-   used. Move to In Review; Done only when merged and verified,
-   tearing the worktree down in that same step.
+   used. Swap to `status/in-review`; the merge closes the issue via
+   `Fixes #<n>` — verify that it did, and tear the worktree down in
+   that same step.
 
 ## Failure lanes
 
 - **Non-zero exit, no commits, or timeout:** one retry at the same
-  settings (fresh session). A second failure → Blocked, waiting on a
-  human to re-tier or re-scope, with the last ~20 lines of the log in
-  the Linear comment. Honest failure is a valid output — never fake a
+  settings (fresh session). A second failure → `status/blocked`, waiting
+  on a human to re-tier or re-scope, with the last ~20 lines of the log
+  in the issue comment. Honest failure is a valid output — never fake a
   green gate.
 - **Budget (PROVISIONAL, never measured):** 30 min wall-clock per
   ticket, max 2 Codex tickets concurrent. The first real run is
@@ -173,7 +174,7 @@ the model's highest supported effort and say so in the Linear comment.
 
 ## Attribution
 
-The PR body line in step 4 and the Linear close-out comment are the
+The PR body line in step 4 and the issue close-out comment are the
 record that Codex authored the change. Keep both accurate — if you
 (Claude) end up writing code to rescue a ticket, say so in both places
 and consider whether the tier label should change.

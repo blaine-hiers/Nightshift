@@ -15,8 +15,8 @@ One **base clone** per target repo, one **worktree** per issue underneath it:
 workspace/
 └── api-server/              # base clone — never work here directly
     └── .worktrees/
-        ├── ENG-42/          # one per Linear issue
-        └── ENG-43/
+        ├── issue-42/        # one per GitHub issue
+        └── issue-43/
 ```
 
 Worktrees live *inside* the base clone deliberately: Doppler's CLI scope is path-keyed and inherits down the directory tree, so a worktree under the scoped clone picks up the right project/config for free (see Secrets below). Add `.worktrees/` to the base clone's `.git/info/exclude` — local and untracked, so it never becomes a PR against the target repo.
@@ -26,8 +26,8 @@ Set up a ticket:
 ```bash
 cd workspace/<repo-name>
 git fetch origin
-git worktree add .worktrees/ENG-42 -b <gitBranchName> origin/main
-cd .worktrees/ENG-42 && npm ci      # or the repo's own bootstrap
+git worktree add .worktrees/issue-42 -b dev/42-<kebab-slug> origin/main
+cd .worktrees/issue-42 && npm ci      # or the repo's own bootstrap
 ```
 
 Worktrees share one object store, so this costs ~nothing in git terms — the base clone's `.git` is a few MB. Dependencies (`node_modules`) are per-worktree and are the real disk cost; that's unavoidable and is another reason teardown matters.
@@ -36,10 +36,10 @@ Set `gc.auto=0` on the base clone and fetch **once from the main thread** before
 
 ## Teardown
 
-**A worktree is deleted when its issue reaches Done.** The coordinator does it, not the subagent — subagents get interrupted, die, or finish with the PR still open, which is exactly how 400+ MB of dead clones accumulated once already.
+**A worktree is deleted when its issue is closed.** The coordinator does it, not the subagent — subagents get interrupted, die, or finish with the PR still open, which is exactly how 400+ MB of dead clones accumulated once already.
 
 ```bash
-git -C workspace/<repo-name> worktree remove .worktrees/ENG-42   # refuses if dirty
+git -C workspace/<repo-name> worktree remove .worktrees/issue-42   # refuses if dirty
 git -C workspace/<repo-name> worktree prune
 ```
 
@@ -53,7 +53,7 @@ Prefer `worktree remove` over `rm -rf`: it refuses when the tree has uncommitted
 
 Any one failing means stop and report it rather than delete — that combination is the only evidence that a tree holds nothing unique.
 
-**A `Blocked` issue keeps its worktree**, by design: the work is real and half-done, and rebuilding it costs more than the disk does. It will fail the sweep's three tests and be reported as a BLOCKED tree — that report is the intended outcome, not a leak to clean up. (The sweep's `BLOCKED` label describes a *worktree*; Linear's `Blocked` describes an *issue*. A blocked issue's tree is usually a BLOCKED tree, but the two are independent — don't infer one from the other.) A blocked issue holding a Doppler-synced `.env` is the one exception worth acting on: if the block is measured in weeks, drop the `.env` and re-sync on resume.
+**A `status/blocked` issue keeps its worktree**, by design: the work is real and half-done, and rebuilding it costs more than the disk does. It will fail the sweep's three tests and be reported as a BLOCKED tree — that report is the intended outcome, not a leak to clean up. (The sweep's `BLOCKED` label describes a *worktree*; the `status/blocked` label describes an *issue*. A blocked issue's tree is usually a BLOCKED tree, but the two are independent — don't infer one from the other.) A blocked issue holding a Doppler-synced `.env` is the one exception worth acting on: if the block is measured in weeks, drop the `.env` and re-sync on resume.
 
 ## Secrets (Doppler)
 

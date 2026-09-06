@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Route `Tier/Codex` Linear issues to OpenAI Codex as implementer, with Claude as coordinator (Linear writes, worktrees, push, PR) and reviewer (PR review plus one Codex fix round).
+**Goal:** Route `tier/codex` GitHub issues to OpenAI Codex as implementer, with Claude as coordinator (issue writes, worktrees, push, PR) and reviewer (PR review plus one Codex fix round).
 
-**Architecture:** A new first-party skill `.claude/skills/codex-dispatch/SKILL.md` encodes the per-issue loop; small routing edits in queue-drain, its triage reference, CLAUDE.md, and docs/skills.md point `Tier/Codex` at it; a `Codex` child label is created in Linear's `Tier/` group. The vetted third-party `codex` skill is not modified — codex-dispatch cites it for CLI mechanics.
+**Architecture:** A new first-party skill `.claude/skills/codex-dispatch/SKILL.md` encodes the per-issue loop; small routing edits in queue-drain, its triage reference, CLAUDE.md, and docs/skills.md point `tier/codex` at it; a `Codex` child label is created on the issue's `tier/` group. The vetted third-party `codex` skill is not modified — codex-dispatch cites it for CLI mechanics.
 
-**Tech Stack:** Codex CLI (`codex exec`, v0.152.0), Linear MCP tools, `gh`, git worktrees, Git Bash.
+**Tech Stack:** Codex CLI (`codex exec`, v0.152.0), `gh` CLI tools, `gh`, git worktrees, Git Bash.
 
 **Spec:** `docs/superpowers/specs/2026-09-01-codex-dispatch-design.md` — read it before starting.
 
@@ -14,10 +14,10 @@
 
 - Codex always runs `--sandbox workspace-write` (never `danger-full-access`) with `</dev/null` on stdin and stderr redirected to a log file.
 - Resume always by session UUID, never `--last`.
-- Default model/effort: `gpt-5.6-terra` / `high`; per-issue override via a `codex: <model>/<effort>` line in the Linear issue description.
-- Exactly one review→fix round; after it, unresolved findings → PR comment + Linear **Blocked**.
+- Default model/effort: `gpt-5.6-terra` / `high`; per-issue override via a `codex: <model>/<effort>` line in the GitHub issue description.
+- Exactly one review→fix round; after it, unresolved findings → PR comment + **`status/blocked`**.
 - Budget row (PROVISIONAL): 30 min wall-clock, 2 attempts, max 2 concurrent.
-- `Tier/Codex` is invalid on `Repo/Managed-Platform` issues.
+- `tier/codex` is invalid on `managed-platform` issues.
 - All commits in this plan are to the Nightshift repo, from its root. Commit messages end with the standard Co-Authored-By / Claude-Session trailer used by this session.
 - This machine's Bash tool is Git Bash; `$SCRATCH` below means the session scratchpad directory printed in the system prompt.
 
@@ -89,19 +89,19 @@ Expected: stdout ends with `RESUMED`. No commit for this task — it produces kn
 ````markdown
 ---
 name: codex-dispatch
-description: Use when a Linear issue carries the Tier/Codex label, or the user asks for OpenAI Codex to implement a Linear issue — runs the issue lifecycle with Codex as implementer and Claude as coordinator and reviewer.
+description: Use when a GitHub issue carries the tier/codex label, or the user asks for OpenAI Codex to implement a GitHub issue — runs the issue lifecycle with Codex as implementer and Claude as coordinator and reviewer.
 ---
 
 # Codex Dispatch
 
 Codex writes the code and commits; you (the coordinator) do everything
-else — every Linear write, worktree operation, push, PR creation, and
+else — every issue write, worktree operation, push, PR creation, and
 review dispatch. Codex never gets network access and never touches
-Linear or GitHub. CLI mechanics (models, efforts, timeouts, stdin
+the issue or GitHub. CLI mechanics (models, efforts, timeouts, stdin
 rules) live in the vetted `codex` skill — this skill only encodes the
-Linear workflow around them.
+issue workflow around them.
 
-**Scope guard:** `Tier/Codex` never combines with `Repo/Managed-Platform`
+**Scope guard:** `tier/codex` never combines with `managed-platform`
 (no worktree/PR flow exists there). If you find that combination,
 fix the labels via triage judgment before dispatching.
 
@@ -120,14 +120,14 @@ Read the issue description for a `codex: <model>/<effort>` line
 (triage's convention). Absent that, use `gpt-5.6-terra` / `high`.
 Valid values and compatibility rules (e.g. `ultra` only on sol/terra)
 come from the `codex` skill — on an invalid combination, fall back to
-the model's highest supported effort and say so in the Linear comment.
+the model's highest supported effort and say so in the issue comment.
 
 ## Per-issue flow
 
-1. **Pick up.** `get_issue`, move to In Progress, create the worktree
-   from the base clone with `gitBranchName` — standard flow, see
+1. **Pick up.** `gh issue view`, move to status/in-progress, create the worktree
+   from the base clone with the derived `dev/<n>-<slug>` branch name — standard flow, see
    `docs/workspace.md`.
-2. **Run Codex.** Compose the prompt: the Linear issue description
+2. **Run Codex.** Compose the prompt: the GitHub issue description
    **verbatim**, then a conventions pointer ("Read this repo's
    CLAUDE.md / CONTRIBUTING / README first and follow its build, test,
    and style conventions"), then the contract: "Implement the fix, run
@@ -152,13 +152,13 @@ the model's highest supported effort and say so in the Linear comment.
      <scratchpad>/codex-<issue-id>.log | head -1
    ```
 
-   Keep the UUID — the fix round and the Linear trail both need it.
+   Keep the UUID — the fix round and the issue trail both need it.
 3. **Verify.** `git -C <worktree> log origin/main..HEAD --oneline` must
    show at least one commit, and the repo's own test suite must pass
    when you run it yourself. An empty `-o` output file means Codex was
    killed before finishing — treat as a timeout (failure lane below).
 4. **Open the PR yourself.** Push from the worktree, then
-   `gh pr create --head <gitBranchName>` (the `--head` flag is
+   `gh pr create --head <dev/<n>-<slug>>` (the `--head` flag is
    mandatory from inside a worktree), **ready for review**, body
    opening with: "Implementation by OpenAI Codex (`<model>`/`<effort>`,
    session `<uuid>`); coordinated and reviewed by Claude." plus the
@@ -176,18 +176,18 @@ the model's highest supported effort and say so in the Linear comment.
 
    Re-verify (step 3), push, and dispatch the reviewer once more. If
    findings remain: comment the unresolved list on the PR, move the
-   Linear issue to **Blocked** with the trail, keep the worktree, stop.
+   GitHub issue to **`status/blocked`** with the trail, keep the worktree, stop.
    There is no second fix round.
-7. **Close out.** `save_comment` on the issue: root cause, PR link,
+7. **Close out.** `gh issue comment` on the issue: root cause, PR link,
    review verdict, Codex session UUID, model/effort actually used.
-   Move to In Review; Done only when merged and verified, tearing the
+   Move to `status/in-review`; closed only when merged and verified, tearing the
    worktree down in that same step.
 
 ## Failure lanes
 
 - **Non-zero exit, no commits, or timeout:** one retry at the same
-  settings (fresh session). A second failure → Blocked, with the last
-  ~20 lines of the log in the Linear comment. Honest failure is a
+  settings (fresh session). A second failure → `status/blocked`, with the last
+  ~20 lines of the log in the issue comment. Honest failure is a
   valid output — never fake a green gate.
 - **Budget (PROVISIONAL, never measured):** 30 min wall-clock per
   ticket, max 2 Codex tickets concurrent. The first real run is
@@ -196,7 +196,7 @@ the model's highest supported effort and say so in the Linear comment.
 
 ## Attribution
 
-The PR body line in step 4 and the Linear close-out comment are the
+The PR body line in step 4 and the issue close-out comment are the
 record that Codex authored the change. Keep both accurate — if you
 (Claude) end up writing code to rescue a ticket, say so in both places
 and consider whether the tier label should change.
@@ -216,7 +216,7 @@ git commit -m "Add codex-dispatch skill: Codex implements, Claude coordinates an
 
 ---
 
-### Task 3: Wire queue-drain to route `Tier/Codex`
+### Task 3: Wire queue-drain to route `tier/codex`
 
 **Files:**
 - Modify: `.claude/skills/queue-drain/SKILL.md` (budget table ~line 23; FAN-OUT stage ~line 87)
@@ -242,11 +242,11 @@ And after the existing fable calibration paragraph (ending "…drop the PROVISIO
   is separate and comes out of the review, not this attempt count.
 ```
 
-- [ ] **Step 2: Add the fan-out routing note.** In the same file, at the end of the `### 4. FAN-OUT` stage text (after "…Move each issue to In Progress as its agent starts — not batched."), append:
+- [ ] **Step 2: Add the fan-out routing note.** In the same file, at the end of the `### 4. FAN-OUT` stage text (after "…Move each issue to status/in-progress as its agent starts — not batched."), append:
 
 ```
 
-**Tier/Codex tickets** are not dispatched as implementer subagents.
+**tier/codex tickets** are not dispatched as implementer subagents.
 The coordinator works each one through the codex-dispatch skill
 (worktree creation stays identical; max 2 concurrent Codex runs,
 backgrounded). Their stage-5/6 review and PR flow happens inside
@@ -256,15 +256,15 @@ the PR auto-review in codex-dispatch is the one the human sees.
 
 - [ ] **Step 3: Update triage.md.** Three edits in `.claude/skills/queue-drain/references/triage.md`:
 
-(a) Replace the sentence `` `Repo/` is the only dimension that grows. `Tier/` is closed at four values and the type labels at three; `` with `` `Repo/` is the only dimension that grows. `Tier/` is closed at five values and the type labels at three; ``
+(a) Update the closed-set sentence to read `` `tier/` is closed at five values and the type labels at three; `` — it previously said four.
 
 (b) After the Fable row of the tier table, add:
 
 ```
-| Codex | Route to the OpenAI Codex CLI as implementer (codex-dispatch skill). Assign only when the user asked for Codex on this work or the issue description requests it — never derive it as a cost/difficulty judgment, and never on `Repo/Managed-Platform`. Optionally record `codex: <model>/<effort>` in the description; default is gpt-5.6-terra/high. |
+| Codex | Route to the OpenAI Codex CLI as implementer (codex-dispatch skill). Assign only when the user asked for Codex on this work or the issue description requests it — never derive it as a cost/difficulty judgment, and never on `managed-platform`. Optionally record `codex: <model>/<effort>` in the description; default is gpt-5.6-terra/high. |
 ```
 
-(c) In the **Writing labels back** section, after the line `labels: ["Bug", "api-server", "Sonnet"]   # complete set, not a delta`, add a sentence to the following paragraph noting: `` `Codex` is a valid `Tier/` child; it maps to the codex-dispatch skill, not to an `Agent` `model:` string. ``
+(c) In the **Writing labels back** section, after the line `labels: ["Bug", "api-server", "Sonnet"]   # complete set, not a delta`, add a sentence to the following paragraph noting: `` `Codex` is a valid `tier/` child; it maps to the codex-dispatch skill, not to an `Agent` `model:` string. ``
 
 - [ ] **Step 4: Verify the edits**
 
@@ -275,7 +275,7 @@ Expected: hits in the budget table, fan-out stage, closed-set sentence area, tie
 
 ```bash
 git add .claude/skills/queue-drain/SKILL.md .claude/skills/queue-drain/references/triage.md
-git commit -m "queue-drain: route Tier/Codex tickets through codex-dispatch"
+git commit -m "queue-drain: route tier/codex tickets through codex-dispatch"
 ```
 
 ---
@@ -283,13 +283,13 @@ git commit -m "queue-drain: route Tier/Codex tickets through codex-dispatch"
 ### Task 4: Update CLAUDE.md and docs/skills.md
 
 **Files:**
-- Modify: `CLAUDE.md` (Labels table `Tier/…` row; Prompt and Model Selection tier table)
+- Modify: `CLAUDE.md` (Labels table `tier/…` row; Prompt and Model Selection tier table)
 - Modify: `docs/skills.md` (First-party section)
 
 **Interfaces:**
 - Consumes: skill name `codex-dispatch` from Task 2.
 
-- [ ] **Step 1: Labels table.** In CLAUDE.md's Labels table, change the `Tier/…` row's values from `` `Haiku`, `Sonnet`, `Opus`, `Fable` `` to `` `Haiku`, `Sonnet`, `Opus`, `Fable`, `Codex` ``.
+- [ ] **Step 1: Labels table.** In CLAUDE.md's Labels table, change the `tier/…` row's values from `` `Haiku`, `Sonnet`, `Opus`, `Fable` `` to `` `Haiku`, `Sonnet`, `Opus`, `Fable`, `Codex` ``.
 
 - [ ] **Step 2: Tier table.** In the *Prompt and Model Selection* section, after the `fable` row, add:
 
@@ -297,12 +297,12 @@ git commit -m "queue-drain: route Tier/Codex tickets through codex-dispatch"
 | `codex` | Not a Claude tier: routes the issue to the OpenAI Codex CLI as implementer via the `codex-dispatch` skill (Claude coordinates and reviews). Opt-in only — assign when the user asks for Codex on the work; never as a cost/difficulty derivation. |
 ```
 
-And after the paragraph beginning "Record the choice as the issue's `Tier/…` label…", append the sentence: `` `Tier/Codex` maps to no `Agent` `model:` string at all — it routes to the codex-dispatch skill instead. ``
+And after the paragraph beginning "Record the choice as the issue's `tier/…` label…", append the sentence: `` `tier/codex` maps to no `Agent` `model:` string at all — it routes to the codex-dispatch skill instead. ``
 
 - [ ] **Step 3: docs/skills.md.** Find the `## First-party` section (`grep -n "First-party" docs/skills.md`), read its entry format, and add a matching entry:
 
 ```
-- **codex-dispatch** — works a `Tier/Codex` Linear issue with OpenAI Codex as implementer (sandboxed `codex exec` in the issue worktree) and Claude as coordinator/reviewer: Claude pushes, opens the PR, dispatches the reviewer, and runs one Codex fix round by session UUID. Depends on the third-party `codex` skill for CLI mechanics and the `codex` CLI being authenticated. Spec: `docs/superpowers/specs/2026-09-01-codex-dispatch-design.md`.
+- **codex-dispatch** — works a `tier/codex` GitHub issue with OpenAI Codex as implementer (sandboxed `codex exec` in the issue worktree) and Claude as coordinator/reviewer: Claude pushes, opens the PR, dispatches the reviewer, and runs one Codex fix round by session UUID. Depends on the third-party `codex` skill for CLI mechanics and the `codex` CLI being authenticated. Spec: `docs/superpowers/specs/2026-09-01-codex-dispatch-design.md`.
 ```
 
 - [ ] **Step 4: Verify**
@@ -314,29 +314,29 @@ Expected: the Labels row, the tier table row, the model-string sentence, and the
 
 ```bash
 git add CLAUDE.md docs/skills.md
-git commit -m "Document Tier/Codex and codex-dispatch in CLAUDE.md and skills inventory"
+git commit -m "Document tier/codex and codex-dispatch in CLAUDE.md and skills inventory"
 ```
 
 ---
 
-### Task 5: Create the `Tier/Codex` label in Linear
+### Task 5: Create the `tier/codex` label on the issue
 
 External write — no repo files. Creating a label inside work the user asked for is within the standing rules of engagement.
 
 **Interfaces:**
 - Consumes: nothing from prior tasks (independent, but do it last so docs describing the label land first).
 
-- [ ] **Step 1: Find the `Tier` group's parent label id**
+- [ ] **Step 1: Confirm the existing tier labels**
 
-Call `mcp__claude_ai_Linear__list_issue_labels` for team `Engineering`. Locate the parent label named `Tier` (the group containing `Haiku`, `Sonnet`, `Opus`, `Fable`) and note its id.
+Run `gh label list -R blaine-hiers/<repo> --search tier/` and confirm `tier/haiku`, `tier/sonnet`, `tier/opus`, and `tier/fable` exist in the target repo.
 
 - [ ] **Step 2: Create the child label**
 
-Call `mcp__claude_ai_Linear__create_issue_label` with name `Codex`, the `Tier` parent id from Step 1, and the same team. (Linear capitalizes display names; `Codex` is already capitalized.)
+Run `gh label create tier/codex -R blaine-hiers/<repo> -c "1D76DB" -d "Model tier: routed to the OpenAI Codex CLI"`. Repeat per target repo that needs it — GitHub labels are per-repo, not workspace-wide.
 
 - [ ] **Step 3: Verify**
 
-Call `list_issue_labels` again and confirm `Tier/Codex` appears alongside the four existing tier children. Report the label id in the task output.
+Run `gh label list` again and confirm `tier/codex` appears alongside the four existing tier labels. Report the repos it was created in.
 
 ---
 

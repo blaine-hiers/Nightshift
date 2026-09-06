@@ -2,18 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** One command (`/queue-drain`) that takes the Linear Todo column to draft PRs plus an honest run report, with exactly two human gates (batched plan approval, PR merge).
+**Goal:** One command (`/queue-drain`) that takes the issue status/todo queue to draft PRs plus an honest run report, with exactly two human gates (batched plan approval, PR merge).
 
-**Architecture:** A Claude Code skill in `.claude/skills/queue-drain/` orchestrates stages 0–7 from the spec (`docs/superpowers/specs/2026-08-20-queue-drain-pipeline-design.md`), with reference files loaded per stage (progressive disclosure) and one deterministic bash script for the worktree sweep. The main session is the coordinator; implementer and reviewer subagents are dispatched via the Agent tool; Linear is read/written via the `mcp__claude_ai_Linear__*` MCP tools.
+**Architecture:** A Claude Code skill in `.claude/skills/queue-drain/` orchestrates stages 0–7 from the spec (`docs/superpowers/specs/2026-08-20-queue-drain-pipeline-design.md`), with reference files loaded per stage (progressive disclosure) and one deterministic bash script for the worktree sweep. The main session is the coordinator; implementer and reviewer subagents are dispatched via the Agent tool; issues are read and written via the `gh` CLI.
 
-**Tech Stack:** Claude Code skills (SKILL.md + references/), bash (sweep script + plain-bash test harness), git worktrees, `gh` CLI, Linear MCP.
+**Tech Stack:** Claude Code skills (SKILL.md + references/), bash (sweep script + plain-bash test harness), git worktrees, `gh` CLI, `gh` CLI.
 
 ## Global Constraints
 
 Copied from the spec — every task implicitly includes these:
 
 - Everything lands in the **Nightshift repo**; nothing is written to the knowledge vault.
-- Linear team is **Engineering** (issue keys `ENG-N`); queue = status **Todo**, unblocked.
+- Issues live in the repo they target under `blaine-hiers` (refs read `repo#N`); queue = `status/todo`, unblocked.
 - Model tiers verbatim from Nightshift CLAUDE.md: haiku = mechanical, sonnet = ordinary default, opus = justified only; **default down, not up**.
 - **WIP cap: at most 5 tickets in flight** per drain; a drain does not start when >~5 agent PRs from prior runs sit unreviewed.
 - **Per-ticket budget: 60 minutes wall-clock / 2 attempts**, then the honest-failure lane.
@@ -82,11 +82,11 @@ git clone -q "$TMP/origin.git" "$TMP/base" 2>/dev/null
 cd "$TMP/base"
 git config user.email t@t; git config user.name t
 echo hi > f.txt; git add f.txt; git commit -qm init; git push -q origin HEAD:main 2>/dev/null
-git worktree add -q .worktrees/ENG-1 -b test/ENG-1
-( cd .worktrees/ENG-1 && git config user.email t@t && git config user.name t \
-  && echo fix > f.txt && git commit -qam fix && git push -q origin test/ENG-1 )
+git worktree add -q .worktrees/issue-1 -b test/issue-1
+( cd .worktrees/issue-1 && git config user.email t@t && git config user.name t \
+  && echo fix > f.txt && git commit -qam fix && git push -q origin test/issue-1 )
 
-# --- stub gh: reports MERGED for test/ENG-1 ---
+# --- stub gh: reports MERGED for test/issue-1 ---
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -100,17 +100,17 @@ OUT="$(bash "$SWEEP" "$TMP/base")"
 assert_contains "$OUT" "REMOVABLE" "clean pushed merged worktree is REMOVABLE"
 
 # T2: dirty worktree => BLOCKED dirty
-echo dirty >> "$TMP/base/.worktrees/ENG-1/f.txt"
+echo dirty >> "$TMP/base/.worktrees/issue-1/f.txt"
 OUT="$(bash "$SWEEP" "$TMP/base")"
 assert_contains "$OUT" "BLOCKED" "dirty worktree is BLOCKED"
 assert_contains "$OUT" "dirty" "dirty reason reported"
-( cd "$TMP/base/.worktrees/ENG-1" && git checkout -q -- f.txt )
+( cd "$TMP/base/.worktrees/issue-1" && git checkout -q -- f.txt )
 
 # T3: unpushed commit => BLOCKED unpushed
-( cd "$TMP/base/.worktrees/ENG-1" && echo more > g.txt && git add g.txt && git commit -qm more )
+( cd "$TMP/base/.worktrees/issue-1" && echo more > g.txt && git add g.txt && git commit -qm more )
 OUT="$(bash "$SWEEP" "$TMP/base")"
 assert_contains "$OUT" "unpushed" "unpushed commit is BLOCKED unpushed"
-( cd "$TMP/base/.worktrees/ENG-1" && git push -q origin test/ENG-1 )
+( cd "$TMP/base/.worktrees/issue-1" && git push -q origin test/issue-1 )
 
 # T4: gh says OPEN => BLOCKED pr-not-merged
 cat > "$TMP/bin/gh" <<'EOF'
@@ -127,7 +127,7 @@ assert_contains "$OUT" "REMOVABLE" "--skip-pr-check makes it REMOVABLE"
 
 # T6: --remove deletes the worktree
 bash "$SWEEP" "$TMP/base" --skip-pr-check --remove >/dev/null
-if [ -d "$TMP/base/.worktrees/ENG-1" ]; then
+if [ -d "$TMP/base/.worktrees/issue-1" ]; then
   echo "FAIL - --remove removes the worktree"; FAILS=$((FAILS+1))
 else echo "ok   - --remove removes the worktree"; fi
 
@@ -243,15 +243,15 @@ report-don't-touch default; plain-bash test harness with stubbed gh."
 ```markdown
 ---
 name: queue-drain
-description: Use when asked to "drain the queue", "work the Linear queue", "/queue-drain", or to batch-process Linear Todo issues into PRs. Orchestrates sweep → triage → plan gate → fan-out → verify → close → retro with the main session as coordinator.
+description: Use when asked to "drain the queue", "work the issue queue", "/queue-drain", or to batch-process GitHub issues labeled status/todo into PRs. Orchestrates sweep → triage → plan gate → fan-out → verify → close → retro with the main session as coordinator.
 ---
 
 # Queue Drain
 
-One command takes the Linear Todo column to draft PRs plus an honest run
-report. You (the main session) are the **coordinator**: you own all Linear
+One command takes the issue status/todo queue to draft PRs plus an honest run
+report. You (the main session) are the **coordinator**: you own all issue
 writes, all worktree creation/teardown, and the final report. Subagents
-implement and review; they never write to Linear.
+implement and review; they never write to an issue.
 
 **The two human gates:** batched plan approval (stage 3) and PR merge
 (outside this skill). Everything else runs without the human.
@@ -277,7 +277,7 @@ for each base clone in `workspace/`. Remove only REMOVABLE trees
 run report. A BLOCKED tree is never deleted by hand.
 
 ### 1. FETCH
-`list_issues`: team Engineering, status Todo, not blocked. Also count open
+`gh issue list` per repo: `status/todo`, not blocked. Also count open
 agent PRs from prior runs (`gh pr list --author @me --state open` per
 target repo, or the PRs-awaiting-merge list from the last run report in
 docs/runs/). Apply the WIP-cap stop rule before proceeding.
@@ -292,15 +292,15 @@ showing it.
 Read `references/plan-gate.md`. Dispatch one planning subagent per
 needs-plan issue (they may run while stage 4 starts for ready tickets).
 Present ALL plans in ONE sitting via AskUserQuestion (approve / revise /
-park per plan). Post approved plans to their Linear issues.
+park per plan). Post approved plans to their GitHub issues.
 
 ### 4. FAN-OUT
 Per target repo: `git fetch origin` once, confirm `git config gc.auto` is
 0 (set it if not). Create every worktree yourself:
-`git -C workspace/<repo> worktree add .worktrees/<issue-id> -b <gitBranchName> origin/main`
+`git -C workspace/<repo> worktree add .worktrees/<issue-id> -b <dev/<n>-<slug>> origin/main`
 then run the repo's bootstrap in each. Dispatch implementer subagents (max
 5 concurrent) in a single message, using the implementer template in
-`references/prompts.md`. Move each issue to In Progress as its agent
+`references/prompts.md`. Move each issue to status/in-progress as its agent
 starts — not batched. Doppler only where the ticket needs live calls:
 `npm run env-sync` inside that worktree, dev config only; track which
 worktrees hold credentials.
@@ -317,9 +317,9 @@ clean/addressed.
 ### 6. CLOSE
 Per passing ticket: push from the worktree, `gh pr create --draft` with
 root cause + fix summary + review findings noted, mark ready only after
-the gate, `save_comment` on the Linear issue (root cause + PR link), move
-issue to In Review. Failed/budget-exhausted tickets: comment the finding
-honestly, return the issue to Todo.
+the gate, `gh issue comment` on the GitHub issue (root cause + PR link), move
+issue to status/in-review. Failed/budget-exhausted tickets: comment the finding
+honestly, return the issue to `status/todo`.
 
 ### 7. RETRO
 Read `references/retro.md`. Mandatory — the run is not done until the
@@ -338,7 +338,7 @@ git add .claude/skills/queue-drain/SKILL.md
 git commit -m "Add queue-drain orchestrator skill
 
 Stages 0-7 per the 2026-08-20 spec: sweep, fetch, triage, batched plan
-gate, capped fan-out, fresh-context verify, Linear close, mandatory retro."
+gate, capped fan-out, fresh-context verify, issue close, mandatory retro."
 ```
 
 ---
@@ -357,11 +357,11 @@ gate, capped fan-out, fresh-context verify, Linear close, mandatory retro."
 ```markdown
 # Triage rules (queue-drain stage 2)
 
-For every Todo issue, `get_issue` (full description + comments + labels +
+For every `status/todo` issue, `gh issue view` (full body + comments + labels +
 project), then answer three questions IN ORDER:
 
 ## 1. Can we locate the work?
-The issue must resolve to a target repo — via its Linear project, an
+The issue must resolve to a target repo — via its GitHub Project, an
 explicit repo name in the description, or an unambiguous match to a clone
 in `workspace/`. Cannot resolve → **needs-info**.
 
@@ -375,7 +375,7 @@ Post this comment (fill the blanks, keep it short):
 > target repo / acceptance criteria]. Please edit the description; the
 > next drain will pick it up automatically.
 
-Issue stays in Todo. Skip it this run.
+Issue moves to `status/needs-input`. Skip it this run.
 
 **fp-check case:** ask is clear but the premise is doubtful (a reported
 bug that may not be real) → classify **ready**, and add
@@ -404,7 +404,7 @@ Show the human this table, then proceed (sanity scan, not a gate):
 
 | Issue | Title | Class | Tier | Repo |
 |---|---|---|---|---|
-| ENG-N | … | ready / needs-plan / needs-info / decompose | haiku/sonnet/opus/— | … |
+| repo#N | … | ready / needs-plan / needs-info / decompose | haiku/sonnet/opus/— | … |
 ```
 
 - [ ] **Step 2: Verify** — check the three questions match the spec's Triage section order and wording intent; check the tier table matches Nightshift CLAUDE.md's "Prompt and Model Selection" table meaning; check `needs-info` never advances and `fp-check` rides on `ready`. Fix inline.
@@ -461,15 +461,15 @@ plans one at a time across the run. Keep the batch readable: if more than
 ~5 plans, say so and split into two sittings — a rubber-stamped approval
 is a failed gate.
 
-- **Approve** → `save_comment` the plan onto the Linear issue, prefix
+- **Approve** → `gh issue comment` the plan onto the GitHub issue, prefix
   "Approved plan (queue-drain):". Ticket joins fan-out; the plan comment
   is part of the implementer's prompt.
 - **Revise** → redraft with the human's feedback, re-present in the same
   sitting if quick, else next sitting.
-- **Park** → `save_comment` the draft plan, prefix "Draft plan (parked):".
-  Issue stays Todo; next run resumes with the feedback already on the
+- **Park** → `gh issue comment` the draft plan, prefix "Draft plan (parked):".
+  Issue moves to `status/needs-input`; next run resumes with the feedback already on the
   ticket.
-- **Decompose approved** → create the child issues (`save_issue`), link
+- **Decompose approved** → create the child issues (`gh issue edit`), link
   them to the parent, comment the split on the parent, move the parent to
   Backlog.
 ```
@@ -507,11 +507,11 @@ Fill every {placeholder}. Dispatch via the Agent tool with
 
 ## IMPLEMENTER PROMPT
 
-    You are fixing ONE Linear issue. Work ONLY in your worktree.
+    You are fixing ONE GitHub issue. Work ONLY in your worktree.
 
     Issue {issue-id}: {title}
     --- description (verbatim) ---
-    {full Linear description}
+    {full issue body}
     --- {if plan} approved plan (verbatim) ---
     {plan comment}
     ---
@@ -529,7 +529,7 @@ Fill every {placeholder}. Dispatch via the Agent tool with
       silent assumptions, no orthogonal changes, no over-engineering.
     - Run the repo's test suite before claiming done.
     - Commit in the worktree (short imperative subject). Do NOT push, do
-      NOT open a PR, do NOT touch Linear — the coordinator owns those.
+      NOT open a PR, do NOT touch the issue — the coordinator owns those.
     - Doppler: only if instructed in this prompt; then `npm run env-sync`
       in the worktree, dev config only; if .env says prd, stop and report.
 
@@ -552,7 +552,7 @@ ONLY what is in this prompt — never the implementer's transcript.
 
     Issue {issue-id}: {title}
     --- description (verbatim) ---
-    {full Linear description}
+    {full issue body}
     --- {if plan} approved plan ---
     {plan comment}
     --- diff ---
@@ -579,7 +579,7 @@ ONLY what is in this prompt — never the implementer's transcript.
   passes or takes the honest-failure lane — never attempt 3.
 ```
 
-- [ ] **Step 2: Verify** — implementer never pushes/PRs/writes Linear (coordinator-owned per spec); reviewer is fresh-context, correctness-scoped, and sees only diff+issue+plan; budget and attempt cap match Global Constraints; report formats are parseable and carry HIGH-RISK flags end-to-end. Fix inline.
+- [ ] **Step 2: Verify** — implementer never pushes/PRs/writes to the issue (coordinator-owned per spec); reviewer is fresh-context, correctness-scoped, and sees only diff+issue+plan; budget and attempt cap match Global Constraints; report formats are parseable and carry HIGH-RISK flags end-to-end. Fix inline.
 
 - [ ] **Step 3: Commit**
 
@@ -620,7 +620,7 @@ quirk, debugging pattern, gotcha)? → new or updated skill in
 - Route: CLAUDE.md only if universally applicable; a skill if
   situational; a hook if it must be deterministic.
 - Retire: flag any skill this run proved stale.
-Systemic root cause? → file a variant-analysis follow-up issue in Linear;
+Systemic root cause? → file a variant-analysis follow-up issue on the issue;
 do not expand scope.
 
 ## 2. Pipeline friction?
@@ -687,9 +687,9 @@ Insert into Nightshift `CLAUDE.md`, after the "Multiple Tickets at Once" section
 ### Draining the Queue
 
 For batch work, don't hand-orchestrate: the **queue-drain** skill
-(`.claude/skills/queue-drain/`) runs the whole loop — sweep → fetch Todo
+(`.claude/skills/queue-drain/`) runs the whole loop — sweep → fetch `status/todo`
 queue → triage → batched plan approval → capped fan-out (5) → fresh-context
-verify → draft PRs → Linear close → mandatory retro. Trigger it with
+verify → draft PRs → issue close → mandatory retro. Trigger it with
 "drain the queue" or `/queue-drain`. Design and rationale:
 `docs/superpowers/specs/2026-08-20-queue-drain-pipeline-design.md`.
 Run reports land in `docs/runs/`.
@@ -719,8 +719,8 @@ git commit -m "Point CLAUDE.md at the queue-drain skill"
 
 - [ ] **Step 1: Read-only live fetch**
 
-From Nightshift, with Linear MCP available: run stages 1–2 for real —
-`list_issues` (team Engineering, Todo), classify per `references/triage.md`, and produce the triage table. **No Linear writes** (no comments, no status moves) — this is a dry run. Confirm: every issue got exactly one class; tier assigned to every `ready`; any unresolvable-repo issue classed `needs-info`.
+From Nightshift, with `gh` CLI available: run stages 1–2 for real —
+`gh issue list` (per repo, `status/todo`), classify per `references/triage.md`, and produce the triage table. **No issue writes** (no comments, no status moves) — this is a dry run. Confirm: every issue got exactly one class; tier assigned to every `ready`; any unresolvable-repo issue classed `needs-info`.
 
 - [ ] **Step 2: Tabletop stages 3–7**
 

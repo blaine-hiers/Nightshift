@@ -5,6 +5,13 @@
 against current industry practice. Six parallel research agents; primary
 sources (vendor docs, changelogs, engineering blogs) preferred.
 
+> **Superseded in part (2026-09-04).** Nightshift has since moved its system of
+> record from Linear to **GitHub Issues** (status as an exclusive `status/…`
+> label, one issue per target repo, all calls via `gh`). Vendor names, dates,
+> and citations below are left exactly as scanned — they are third-party facts
+> about the 2025–2026 market, not statements about how Nightshift works today.
+> Read the tracker-specific findings as market context, not as current design.
+
 ## Verdict
 
 The spec's shape is not idiosyncratic — it is the 2025–2026 industry
@@ -17,7 +24,7 @@ and published best practice.
 
 ## 1. What the spec gets right (validated by industry)
 
-### Linear as the agent work queue — now the de facto standard
+### A dedicated issue tracker as the agent work queue — now the de facto standard
 - **Linear for Agents** (May 2025) made agents first-class assignable
   workspace members; the **Agent Interaction SDK** (Aug 2025) formalized it.
   Delegation model: agent becomes *delegate*, **human stays assignee/owner** —
@@ -48,7 +55,7 @@ and published best practice.
 - **Cyrus** (github.com/cyrusagents/cyrus, open source) is the closest
   existing implementation of this exact pipeline: watches Linear
   assignments, one worktree per issue, Claude Code session per ticket,
-  streams activities back to Linear. Worth studying; our in-session skill is
+  streams activities back to its tracker. Worth studying; our in-session skill is
   the lighter-weight equivalent.
 
 ### Two human gates — the consensus, and increasingly structural

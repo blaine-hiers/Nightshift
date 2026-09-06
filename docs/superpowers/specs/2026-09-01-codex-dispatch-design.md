@@ -6,15 +6,15 @@
 
 ## Goal
 
-Let OpenAI Codex take the **implementer** seat for selected Linear issues while
+Let OpenAI Codex take the **implementer** seat for selected GitHub issues while
 Claude keeps the **coordinator** and **reviewer** seats. Codex writes the code
-and commits; Claude owns every Linear write, worktree operation, push, PR
+and commits; Claude owns every issue write, worktree operation, push, PR
 creation, and PR review. One review-feedback round goes back to Codex, then the
 lane ends honestly.
 
 Decisions locked with the user:
 
-- **Routing:** a `Tier/Codex` label, not Codex-by-default and not
+- **Routing:** a `tier/codex` label, not Codex-by-default and not
   conversation-only.
 - **Sandboxing:** Codex runs `--sandbox workspace-write`; it never gets
   network. Claude performs the push and `gh pr create` (the PR body credits
@@ -24,7 +24,7 @@ Decisions locked with the user:
 
 ## 1. Routing
 
-- Add **`Tier/Codex`** to the exclusive `Tier/` label group in Linear. An issue
+- Add **`tier/codex`** to the exclusive `tier/` label set. An issue
   carrying it is implemented by Codex instead of a Claude subagent, in both
   hand-dispatch and `/queue-drain`. All other tiers behave exactly as today.
 - Triage may record a model/effort override as a one-line
@@ -39,10 +39,10 @@ Decisions locked with the user:
 Claude is coordinator throughout. Codex only ever writes code inside the
 worktree.
 
-1. **Pick up.** `get_issue`, set In Progress, create the worktree from the base
-   clone using `gitBranchName` — unchanged from the standard flow
+1. **Pick up.** `gh issue view`, set status/in-progress, create the worktree from the base
+   clone using the derived `dev/<n>-<slug>` branch name — unchanged from the standard flow
    (`docs/workspace.md`).
-2. **Run Codex.** Compose the prompt from the Linear description verbatim plus
+2. **Run Codex.** Compose the prompt from the issue body verbatim plus
    a pointer to the target repo's conventions (its CLAUDE.md / CONTRIBUTING /
    README) and the instruction to implement, run the repo's own test suite, and
    **commit** the work. Then, with the worktree as the working directory:
@@ -59,12 +59,12 @@ worktree.
    - Timeout per the codex skill's effort table (`high` → 600 s); run in
      background so parallel tickets don't serialize.
    - Capture the **session UUID** from the stderr log file; it is required for
-     the fix round and recorded in Linear.
+     the fix round and recorded on the issue.
 3. **Verify and open the PR.** Claude checks the worktree has new commits and
    the repo's test suite passes. Then Claude pushes the branch and runs
    `gh pr create` — ready for review, body opening with: "Implementation by
    OpenAI Codex (`<model>`/`<effort>`, session `<uuid>`); coordinated and
-   reviewed by Claude", plus the `ENG-XX` reference.
+   reviewed by Claude", plus `Fixes #<n>`.
 4. **Review.** Claude dispatches the same fresh reviewer subagent as today
    (PR-review template in `.claude/skills/queue-drain/references/prompts.md`),
    which posts its verdict via `gh pr review`.
@@ -78,11 +78,11 @@ worktree.
    Resume **by session UUID, never `--last`** — `--last` is parallel-unsafe
    when multiple Codex tickets run concurrently. Re-verify tests, push, and
    have the reviewer re-review once. If issues remain, comment the unresolved
-   findings on the PR, move the Linear issue to **Blocked** with the trail, and
+   findings on the PR, move the GitHub issue to **`status/blocked`** with the trail, and
    stop. No further rounds.
-6. **Close out.** Unchanged from the standard flow: Linear comment with root
-   cause, PR link, Codex session ID, and model/effort; In Review → Done when
-   merged and verified; worktree teardown at Done, by the coordinator.
+6. **Close out.** Unchanged from the standard flow: issue comment with root
+   cause, PR link, Codex session ID, and model/effort; `status/in-review`, closed when
+   merged and verified; worktree teardown at close, by the coordinator.
 
 ## 3. Queue-drain and docs wiring
 
@@ -91,17 +91,17 @@ Small edits only:
 - **queue-drain SKILL.md** fan-out stage gains a `codex` tier row:
   dispatch via codex-dispatch; budget **30 min wall-clock, 1 fix round, max 2
   concurrent** — provisional like fable's, revisit after a real run.
-- **queue-drain triage reference** notes `Tier/Codex` as a valid triage
+- **queue-drain triage reference** notes `tier/codex` as a valid triage
   outcome and the `codex: <model>/<effort>` description convention.
 - **CLAUDE.md** tier table gains the Codex row (and the note that
-  `Tier/Codex` routes to codex-dispatch, not to an `Agent` model string).
+  `tier/codex` routes to codex-dispatch, not to an `Agent` model string).
 - **docs/skills.md** gets a first-party entry for codex-dispatch.
-- **Linear:** create the `Tier/Codex` label in the `Tier/` group.
+- **Labels:** `gh label create tier/codex` in each target repo that needs it.
 
 ## 4. Failure handling
 
 - **Codex exits non-zero, produces no commits, or times out:** one retry at
-  the same settings, then Blocked with a log excerpt in the Linear comment —
+  the same settings, then `status/blocked` with a log excerpt in the issue comment —
   mirrors the existing honest-failure lane.
 - **Empty `-o` output file:** codex was killed before finishing (known
   behavior — it writes output only at completion); treat as a timeout.
@@ -109,7 +109,7 @@ Small edits only:
   (`codex --version` plus `codex login status`, or the nearest equivalent this
   CLI version supports) at dispatch start fails the whole run loudly, rather
   than failing per-ticket.
-- **`Repo/Managed-Platform` issues** are out of scope for `Tier/Codex` (no
+- **`managed-platform` issues** are out of scope for `tier/codex` (no
   worktree/PR flow exists for them); triage must not combine the two.
 
 ## Out of scope

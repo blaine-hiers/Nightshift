@@ -179,8 +179,8 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="brand"><span class="logo">🐛</span> Nightshift</div>
-    <span class="meta-chip">your-org/Nightshift</span>
-    <span class="meta-chip">Linear · Engineering</span>
+    <span class="meta-chip">blaine-hiers/Nightshift</span>
+    <span class="meta-chip">GitHub Issues · blaine-hiers</span>
     <div class="spacer"></div>
     <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="true" title="Toggle diagram motion (m)">
       <span class="dot"></span><span id="motionLabel">Motion on</span>
@@ -201,55 +201,55 @@
   <main>
     <div class="hero">
       <h1>How Nightshift works</h1>
-      <p class="lede">Nightshift is not a software project. It's the working environment that turns <strong>Linear issues</strong> into <strong>pull requests against other repos</strong>. The one thing to understand first: Linear is the system of record — work starts from a Linear issue and ends with that issue updated, and nothing here tracks the target repos' code, only the skills and docs that encode the workflow.</p>
+      <p class="lede">Nightshift is not a software project. It's the working environment that turns <strong>GitHub issues</strong> into <strong>pull requests against the repos they live in</strong>. The one thing to understand first: GitHub Issues is the system of record — work starts from an issue in the target repo and ends with that issue closed, and nothing here tracks the target repos' code, only the skills and docs that encode the workflow.</p>
       <div class="facts">
-        <div class="fact"><div class="k">Tracker</div><div class="v">linear.app/your-workspace</div></div>
-        <div class="fact"><div class="k">Issue key</div><div class="v">ENG-NN</div></div>
+        <div class="fact"><div class="k">Tracker</div><div class="v">github.com/blaine-hiers</div></div>
+        <div class="fact"><div class="k">Issue ref</div><div class="v">repo#NN</div></div>
         <div class="fact"><div class="k">Entry points</div><div class="v">CLAUDE.md · /queue-drain · codex-dispatch</div></div>
         <div class="fact"><div class="k">Target repos</div><div class="v">workspace/&lt;repo&gt;</div></div>
         <div class="fact"><div class="k">Secrets</div><div class="v">Doppler · dev only</div></div>
-        <div class="fact"><div class="k">Last reviewed</div><div class="v">2026-09-01</div></div>
+        <div class="fact"><div class="k">Last reviewed</div><div class="v">2026-09-04</div></div>
       </div>
     </div>
 
     <!-- ═══════════════════════ 1 · Big picture ═══════════════════════ -->
     <section class="card" id="overview">
       <h2><span class="num">01</span> Big picture</h2>
-      <p class="muted">Three systems, one direction of flow. Linear says what to do, Nightshift does it in a throwaway worktree, GitHub is where the fix lands — and the trail is written back to Linear.</p>
+      <p class="muted">Two systems, one direction of flow. GitHub says what to do <em>and</em> is where the fix lands; Nightshift does the work in a throwaway worktree in between — and writes the trail back to the issue the work came from.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 flowchart TB
     H["👤 Human<br/>files / triages issues"] --> LIN
-    subgraph LIN["📋 Linear — system of record"]
-        I["Issue<br/>description = the prompt<br/>Type · Repo/ · Tier/ · Security"]
+    subgraph LIN["📋 GitHub Issues — system of record"]
+        I["Issue<br/>body = the prompt<br/>type · status/ · tier/ · security"]
         ST["Status + comment trail"]
     end
     subgraph BS["🛠️ Nightshift"]
         CO["Coordinator<br/>main Claude session"]
         SK["Skills<br/>.claude/skills/"]
         SUB["Claude subagents<br/>haiku · sonnet · opus · fable"]
-        CDX["OpenAI Codex CLI<br/>Tier/Codex · sandboxed · no network"]
-        WT["workspace/&lt;repo&gt;/.worktrees/ENG-NN"]
+        CDX["OpenAI Codex CLI<br/>tier/codex · sandboxed · no network"]
+        WT["workspace/&lt;repo&gt;/.worktrees/issue-NN"]
         RUN["docs/runs/<br/>run reports"]
     end
     subgraph GH["🐙 GitHub — target repo"]
-        BR["Branch = gitBranchName"]
+        BR["Branch = dev/NN-slug"]
         PR["PR (ready) → auto-review → merged"]
     end
     DOP[("🔐 Doppler<br/>dev config")]
-    I -->|get_issue| CO
+    I -->|gh issue view| CO
     SK --> CO
     CO -->|git worktree add| WT
     CO -->|dispatch, per-ticket model| SUB
-    CO -->|"codex exec, Tier/Codex only"| CDX
+    CO -->|"codex exec, tier/codex only"| CDX
     SUB -->|edits · tests| WT
     CDX -->|"edits · tests · commits<br/>never pushes"| WT
     DOP -.->|env-sync, opt-in| WT
     WT -->|push · gh pr create| BR --> PR
-    CO -->|save_comment · status| ST
+    CO -->|gh issue comment · status| ST
     CO -->|retro| RUN
-    PR -.->|merged + verified ⇒ Done| ST
+    PR -.->|merged + verified ⇒ closed| ST
 
     class H actor
     class I,ST,BR,PR external
@@ -261,9 +261,9 @@ flowchart TB
       <div class="legend" data-legend></div>
 
       <div class="grid2" style="margin-top:1rem">
-        <div class="tile"><h4>Inputs</h4><ul><li>Linear issues in <code>Todo</code> (or named in conversation)</li><li>Target repo clones under <code>workspace/</code></li><li>Doppler <code>dev</code> secrets — only when a ticket needs live calls</li></ul></div>
-        <div class="tile"><h4>Outputs</h4><ul><li>PRs against target repos, referencing <code>ENG-NN</code></li><li>Linear comments: root cause, repro, PR link</li><li>Run reports in <code>docs/runs/</code></li><li>Skill improvements — the commits this repo is made of</li></ul></div>
-        <div class="tile"><h4>Depends on</h4><ul><li>Linear MCP (<code>mcp__claude_ai_Linear__*</code>)</li><li><code>gh</code> CLI with push access (or fork)</li><li>Doppler CLI, directory-scoped</li><li><code>codex</code> CLI, logged in — only for <code>Tier/Codex</code> tickets</li></ul></div>
+        <div class="tile"><h4>Inputs</h4><ul><li>Issues labeled <code>status/todo</code> (or named in conversation)</li><li>Target repo clones under <code>workspace/</code></li><li>Doppler <code>dev</code> secrets — only when a ticket needs live calls</li></ul></div>
+        <div class="tile"><h4>Outputs</h4><ul><li>PRs against target repos, referencing <code>&lt;repo&gt;#NN</code></li><li>Issue comments: root cause, repro, PR link</li><li>Run reports in <code>docs/runs/</code></li><li>Skill improvements — the commits this repo is made of</li></ul></div>
+        <div class="tile"><h4>Depends on</h4><ul><li><code>gh</code> CLI, authenticated as <code>blaine-hiers</code>, with push access (or fork)</li><li>Doppler CLI, directory-scoped</li><li><code>codex</code> CLI, logged in — only for <code>tier/codex</code> tickets</li></ul></div>
         <div class="tile"><h4>Never tracked here</h4><ul><li><code>workspace/</code> — gitignored</li><li>Any target repo code</li><li>Any <code>.env</code> value</li></ul></div>
       </div>
     </section>
@@ -271,16 +271,16 @@ flowchart TB
     <!-- ═══════════════════════ 2 · Components ═══════════════════════ -->
     <section class="card" id="components">
       <h2><span class="num">02</span> Components &amp; responsibilities</h2>
-      <p class="muted">Who does what. The split that matters most: the <strong>coordinator</strong> owns every Linear write and every worktree; <strong>subagents</strong> implement and review and never touch Linear.</p>
+      <p class="muted">Who does what. The split that matters most: the <strong>coordinator</strong> owns every issue write and every worktree; <strong>subagents</strong> implement and review and never touch an issue.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Component</th><th>Lives in</th><th>Responsibility</th><th>Talks to</th></tr></thead>
           <tbody>
-            <tr><td><strong>Coordinator</strong></td><td>main Claude session</td><td>Reads issues, creates worktrees, dispatches subagents, moves status, comments, tears down, writes the run report</td><td>Linear, git, subagents</td></tr>
-            <tr><td><strong>Implementer subagent</strong></td><td><code>Agent</code> with <code>model:</code> from <code>Tier/</code></td><td>Reproduce → fix → run the target repo's tests in its worktree; report back</td><td>its worktree only</td></tr>
-            <tr><td><strong>Codex implementer</strong></td><td><code>codex exec</code> in the worktree, <code>Tier/Codex</code> only</td><td>Implement → run the repo's tests → commit to the branch. Sandboxed <code>workspace-write</code>, network off; never pushes, never sees Linear or GitHub</td><td>its worktree only</td></tr>
+            <tr><td><strong>Coordinator</strong></td><td>main Claude session</td><td>Reads issues, creates worktrees, dispatches subagents, moves status, comments, tears down, writes the run report</td><td>gh, git, subagents</td></tr>
+            <tr><td><strong>Implementer subagent</strong></td><td><code>Agent</code> with <code>model:</code> from <code>tier/</code></td><td>Reproduce → fix → run the target repo's tests in its worktree; report back</td><td>its worktree only</td></tr>
+            <tr><td><strong>Codex implementer</strong></td><td><code>codex exec</code> in the worktree, <code>tier/codex</code> only</td><td>Implement → run the repo's tests → commit to the branch. Sandboxed <code>workspace-write</code>, network off; never pushes, never sees GitHub</td><td>its worktree only</td></tr>
             <tr><td><strong>Reviewer subagent</strong></td><td>fresh <code>Agent</code> per diff</td><td>Sees only diff + issue + plan; returns correctness findings. Same reviewer for Claude and Codex diffs</td><td>coordinator</td></tr>
-            <tr><td><strong>codex-dispatch</strong></td><td><code>.claude/skills/codex-dispatch/</code></td><td>The Linear lifecycle around a Codex run: pre-flight, sandboxed exec, verify + secret scan, Claude pushes and opens the PR, reviewer, one fix round by session UUID, failure lanes</td><td>codex, git/gh, Linear (via coordinator)</td></tr>
+            <tr><td><strong>codex-dispatch</strong></td><td><code>.claude/skills/codex-dispatch/</code></td><td>The issue lifecycle around a Codex run: pre-flight, sandboxed exec, verify + secret scan, Claude pushes and opens the PR, reviewer, one fix round by session UUID, failure lanes</td><td>codex, git/gh (via coordinator)</td></tr>
             <tr><td><strong>codex</strong> (third-party)</td><td><code>.claude/skills/codex/</code></td><td>CLI mechanics only: model/effort tables, timeout table, stdin rule. Its interactive rules (AskUserQuestion, <code>resume --last</code>) do <em>not</em> apply under codex-dispatch</td><td>—</td></tr>
             <tr><td><strong>queue-drain</strong></td><td><code>.claude/skills/queue-drain/</code></td><td>The batch loop: sweep → fetch → triage → plan gate → fan-out → verify → close → retro</td><td>everything above</td></tr>
             <tr><td><strong>Review skills</strong></td><td><code>variant-analysis</code>, <code>differential-review</code>, <code>fp-check</code>, <code>semgrep</code></td><td>Find sibling bugs, security-review diffs, verify suspected bugs, scan</td><td>worktree</td></tr>
@@ -295,26 +295,26 @@ flowchart TB
     <!-- ═══════════════════════ 3 · Working one ticket ═══════════════════════ -->
     <section class="card" id="ticket">
       <h2><span class="num">03</span> Working one ticket — the main path</h2>
-      <p class="muted">The per-issue loop from <code>CLAUDE.md › Working an Issue</code>. Entry is decided by <em>provenance</em>, not count: tickets you named in conversation are hand-dispatched; anything pulled off the Todo column goes through the drain.</p>
+      <p class="muted">The per-issue loop from <code>CLAUDE.md › Working an Issue</code>. Entry is decided by <em>provenance</em>, not count: tickets you named in conversation are hand-dispatched; anything pulled off the status/todo queue goes through the drain.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 flowchart TD
     S(["Issue picked up"]) --> Prov{"Where did it come from?"}
-    Prov -->|"named in conversation, ≤ ~4"| Hand["Hand dispatch<br/>one subagent per ticket<br/>model = Tier/ label"]
-    Prov -->|"off the Todo column, or > ~4"| Drain["/queue-drain<br/>§ 06"]
+    Prov -->|"named in conversation, ≤ ~4"| Hand["Hand dispatch<br/>one subagent per ticket<br/>model = tier/ label"]
+    Prov -->|"off the status/todo queue, or > ~4"| Drain["/queue-drain<br/>§ 06"]
     Hand --> Get
     Drain --> Get
-    Get["get_issue<br/>description = prompt · comments · gitBranchName"] --> Work{"Workable with zero questions?"}
-    Work -->|no| NI["save_comment what's missing<br/>→ Needs Input"]
-    Work -->|yes| IP["→ In Progress · assign"]
-    IP --> Pinn{"Repo/Managed-Platform?"}
+    Get["gh issue view<br/>description = prompt · comments · dev/NN-slug"] --> Work{"Workable with zero questions?"}
+    Work -->|no| NI["gh issue comment what's missing<br/>→ status/needs-input"]
+    Work -->|yes| IP["→ status/in-progress · assign"]
+    IP --> Pinn{"managed-platform?"}
     Pinn -->|yes| Direct["Work the .builder install directly<br/>no clone · no worktree · no PR"] --> Trail
     Pinn -->|no| Clone{"workspace/&lt;repo&gt; exists?"}
     Clone -->|no| DoClone["git clone once → base clone<br/>doppler setup -c dev · gc.auto=0"] --> WT
-    Clone -->|yes| WT["git fetch origin<br/>git worktree add .worktrees/ENG-NN<br/>-b &lt;gitBranchName&gt; origin/main"]
+    Clone -->|yes| WT["git fetch origin<br/>git worktree add .worktrees/issue-NN<br/>-b &lt;dev/NN-slug&gt; origin/main"]
     WT --> Boot["Repo bootstrap · read its CLAUDE.md"]
-    Boot --> Cdx{"Tier/Codex?"}
+    Boot --> Cdx{"tier/codex?"}
     Cdx -->|"yes — no env-sync, ever"| CdxRun["codex-dispatch<br/>Codex implements + commits<br/>see § 03 · Codex path"]
     CdxRun --> PR
     Cdx -->|no| Env{"Needs live calls?"}
@@ -322,16 +322,16 @@ flowchart TD
     Env -->|no| Repro["Reproduce"]
     Repro --> Fix["Fix · run the repo's own tests"]
     Fix --> Tier{"Cheaper tier failed?"}
-    Tier -->|yes| Esc["Escalate model<br/>update Tier/ label"] --> Fix
+    Tier -->|yes| Esc["Escalate model<br/>update tier/ label"] --> Fix
     Tier -->|no| Stall{"Stalled on something external?"}
-    Stall -->|yes| BL["save_comment what + who owns it<br/>→ Blocked · keep worktree"]
-    Stall -->|no| PR["Commit + push from worktree<br/>gh pr create · ENG-NN in title"]
-    PR --> Trail["save_comment root cause + PR link<br/>→ In Review"]
+    Stall -->|yes| BL["gh issue comment what + who owns it<br/>→ Blocked · keep worktree"]
+    Stall -->|no| PR["Commit + push from worktree<br/>gh pr create · Fixes #NN in body"]
+    PR --> Trail["gh issue comment root cause + PR link<br/>→ status/in-review"]
     Trail --> Merge{"Merged + verified?"}
     Merge -->|"review bounces"| Fix
     Merge -->|yes| Done["→ Done<br/>git worktree remove — same step"]
     Done --> End(["Finished"])
-    Fix -. "new work found" .-> New["File a separate Linear issue<br/>stay on scope"]
+    Fix -. "new work found" .-> New["File a separate GitHub issue<br/>stay on scope"]
 
     class S,End allow
     class Prov,Work,Pinn,Clone,Cdx,Env,Tier,Stall,Merge decision
@@ -344,7 +344,7 @@ flowchart TD
       <div class="legend" data-legend></div>
 
       <h3>Sequence view — hand dispatch of one ticket</h3>
-      <p class="caption">Who calls whom. Note the coordinator does every Linear write and creates the worktree <em>before</em> the subagent exists.</p>
+      <p class="caption">Who calls whom. Note the coordinator does every issue write and creates the worktree <em>before</em> the subagent exists.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
@@ -352,19 +352,19 @@ sequenceDiagram
     autonumber
     actor H as Human
     participant C as Coordinator
-    participant L as Linear
+    participant L as GitHub Issues
     participant G as git / gh
     participant A as Subagent
-    H->>C: "work ENG-42"
-    C->>L: get_issue ENG-42
-    L-->>C: description, labels, gitBranchName
-    C->>L: save_issue → In Progress
-    C->>G: worktree add .worktrees/ENG-42 -b dev/ENG-42-…
+    H->>C: "work Redline#42"
+    C->>L: gh issue view 42 -R …/Redline
+    L-->>C: description, labels, dev/NN-slug
+    C->>L: gh issue edit → status/in-progress
+    C->>G: worktree add .worktrees/issue-42 -b dev/42-…
     C->>A: Agent(model: tier) — id, description, branch, worktree path
     A->>G: reproduce · fix · test · commit · push
     A-->>C: report (root cause, tests, self-check)
-    C->>G: gh pr create … ENG-42<br/>gh pr review (auto-review)
-    C->>L: save_comment (root cause + PR) · → In Review
+    C->>G: gh pr create … Fixes #42<br/>gh pr review (auto-review)
+    C->>L: gh issue comment (root cause + PR) · → status/in-review
     C-->>H: relay result
     H->>G: review · merge
     C->>L: → Done
@@ -372,16 +372,16 @@ sequenceDiagram
         </pre>
       </div>
 
-      <h3 id="codex-path">Codex path — <code>Tier/Codex</code> tickets</h3>
-      <p class="caption">Same ticket loop, different implementer. <strong>Codex writes the code and commits; Claude does everything else</strong> — every Linear write, the worktree, the push, the PR, the review. Codex runs sandboxed with network off, so its only way out of the worktree is Claude's push, and that push is gated by a secret scan. Opt-in only: a ticket gets <code>Tier/Codex</code> because a human asked for Codex, never as a cost/difficulty derivation.</p>
+      <h3 id="codex-path">Codex path — <code>tier/codex</code> tickets</h3>
+      <p class="caption">Same ticket loop, different implementer. <strong>Codex writes the code and commits; Claude does everything else</strong> — every issue write, the worktree, the push, the PR, the review. Codex runs sandboxed with network off, so its only way out of the worktree is Claude's push, and that push is gated by a secret scan. Opt-in only: a ticket gets <code>tier/codex</code> because a human asked for Codex, never as a cost/difficulty derivation.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 flowchart TD
-    S(["Tier/Codex ticket, worktree exists"]) --> Pre["Pre-flight, once per run<br/>codex --version · codex login status"]
+    S(["tier/codex ticket, worktree exists"]) --> Pre["Pre-flight, once per run<br/>codex --version · codex login status"]
     Pre --> PreOK{"both succeed?"}
     PreOK -->|no| Halt["STOP the whole dispatch<br/>report — don't fail ticket by ticket"]
-    PreOK -->|yes| Guard{"Repo/Managed-Platform or<br/>needs live calls / .env?"}
+    PreOK -->|yes| Guard{"managed-platform or<br/>needs live calls / .env?"}
     Guard -->|yes| Mis["Mis-tiered — fix labels<br/>via triage judgment"]
     Guard -->|no| Model["Model + effort<br/>'codex: model/effort' line in description<br/>else gpt-5.6-terra / high"]
     Model --> Run["codex exec — background<br/>--sandbox workspace-write · network_access=false<br/>--full-auto · -C worktree · timeout min(effort, budget)<br/>prompt = description verbatim + conventions + contract"]
@@ -395,7 +395,7 @@ flowchart TD
     Scan -->|clean| Push["Claude pushes from the worktree<br/>gh pr create --head branch · ready for review<br/>body: 'Implementation by OpenAI Codex (model/effort, session uuid);<br/>coordinated and reviewed by Claude.'"]
     Push --> Rev["Fresh reviewer subagent<br/>sonnet · opus if Security<br/>posts gh pr review"]
     Rev --> Verdict{"changes requested?"}
-    Verdict -->|no| Close["save_comment: root cause · PR · verdict ·<br/>session UUID · model/effort<br/>→ In Review"]
+    Verdict -->|no| Close["gh issue comment: root cause · PR · verdict ·<br/>session UUID · model/effort<br/>→ status/in-review"]
     Verdict -->|"yes — first time"| Fix["codex exec … resume &lt;uuid&gt;<br/>never --last · same model/effort/sandbox/worktree<br/>prompt = findings, file:line"]
     Fix --> Ver
     Verdict -->|"yes — second time"| BL3["Comment unresolved list on PR<br/>→ Blocked · keep worktree · stop<br/>no second fix round"]
@@ -413,9 +413,9 @@ flowchart TD
 
       <div class="grid2" style="margin-top:1rem">
         <div class="tile"><h4>What Codex may do</h4><ul><li>Read anything in its worktree (<code>workspace-write</code> limits writes, not reads — so no <code>.env</code> may be there)</li><li>Edit, run the repo's tests, commit to the current branch</li></ul></div>
-        <div class="tile"><h4>What Codex may never do</h4><ul><li>Reach the network (<code>network_access=false</code> pinned on the command line)</li><li>Push, open a PR, or touch Linear</li><li>Be resumed with <code>--last</code> — parallel runs would cross-resume</li></ul></div>
+        <div class="tile"><h4>What Codex may never do</h4><ul><li>Reach the network (<code>network_access=false</code> pinned on the command line)</li><li>Push, open a PR, or touch the issue</li><li>Be resumed with <code>--last</code> — parallel runs would cross-resume</li></ul></div>
         <div class="tile"><h4>Budget</h4><ul><li>30 min wall-clock per ticket — <span class="badge warn">provisional</span>, first real run is attended and measured</li><li>2 attempts (fresh session each); the fix round is separate and comes out of the review</li><li>Max 2 Codex tickets concurrent, each backgrounded</li></ul></div>
-        <div class="tile"><h4>Attribution</h4><ul><li>PR body line + Linear close-out comment are the record that Codex authored it</li><li>If Claude ends up writing code to rescue the ticket, say so in both places and reconsider the tier label</li></ul></div>
+        <div class="tile"><h4>Attribution</h4><ul><li>PR body line + issue close-out comment are the record that Codex authored it</li><li>If Claude ends up writing code to rescue the ticket, say so in both places and reconsider the tier label</li></ul></div>
       </div>
 
       <h3>Sequence view — Codex dispatch of one ticket</h3>
@@ -427,16 +427,16 @@ sequenceDiagram
     autonumber
     actor H as Human
     participant C as Coordinator (Claude)
-    participant L as Linear
+    participant L as GitHub Issues
     participant G as git / gh
     participant X as Codex CLI (sandboxed)
     participant R as Reviewer subagent
-    H->>C: "have Codex do ENG-42" (Tier/Codex)
+    H->>C: "have Codex do Redline#42" (tier/codex)
     C->>X: codex --version · login status (once per run)
-    C->>L: get_issue ENG-42
-    L-->>C: description, labels, gitBranchName
-    C->>L: save_issue → In Progress
-    C->>G: worktree add .worktrees/ENG-42 -b dev/ENG-42-…
+    C->>L: gh issue view 42 -R …/Redline
+    L-->>C: description, labels, dev/NN-slug
+    C->>L: gh issue edit → status/in-progress
+    C->>G: worktree add .worktrees/issue-42 -b dev/42-…
     C->>X: codex exec -C worktree, no network, description verbatim + contract
     X->>G: edit · run tests · commit (no push)
     X-->>C: exit status · session UUID · -o output
@@ -451,7 +451,7 @@ sequenceDiagram
         C->>R: review again
         R->>G: gh pr review
     end
-    C->>L: save_comment (root cause · PR · verdict · UUID · model/effort) · → In Review
+    C->>L: gh issue comment (root cause · PR · verdict · UUID · model/effort) · → status/in-review
     C-->>H: relay result
     H->>G: review · merge
     C->>L: → Done
@@ -467,10 +467,10 @@ sequenceDiagram
 
       <h3>Roles</h3>
       <div class="grid2">
-        <div class="tile"><h4><span class="role">human</span></h4><p class="muted" style="margin:0">Files and sharpens issues, approves plans, reviews and merges PRs, unsticks <code>Needs Input</code>.</p></div>
-        <div class="tile"><h4><span class="role">coordinator</span></h4><p class="muted" style="margin:0">The main session. Only principal that writes to Linear or creates/removes worktrees.</p></div>
+        <div class="tile"><h4><span class="role">human</span></h4><p class="muted" style="margin:0">Files and sharpens issues, approves plans, reviews and merges PRs, unsticks <code>status/needs-input</code>.</p></div>
+        <div class="tile"><h4><span class="role">coordinator</span></h4><p class="muted" style="margin:0">The main session. Only principal that writes to an issue or creates/removes worktrees.</p></div>
         <div class="tile"><h4><span class="role">subagent</span></h4><p class="muted" style="margin:0">Implementer or reviewer. Lives inside one worktree; reports back as text.</p></div>
-        <div class="tile"><h4><span class="role">codex</span></h4><p class="muted" style="margin:0">OpenAI Codex CLI as implementer on <code>Tier/Codex</code> tickets. Sandboxed to one worktree, network off; commits but never pushes. Strictly less than a subagent.</p></div>
+        <div class="tile"><h4><span class="role">codex</span></h4><p class="muted" style="margin:0">OpenAI Codex CLI as implementer on <code>tier/codex</code> tickets. Sandboxed to one worktree, network off; commits but never pushes. Strictly less than a subagent.</p></div>
         <div class="tile"><h4><span class="role">sweep.sh</span></h4><p class="muted" style="margin:0">Script. Classifies worktrees; deletes only with <code>--remove</code> and only REMOVABLE ones.</p></div>
       </div>
 
@@ -479,8 +479,8 @@ sequenceDiagram
         <table>
           <thead><tr><th>Action</th><th>human</th><th>coordinator</th><th>subagent</th><th>codex</th><th>sweep.sh</th><th>Enforced in</th></tr></thead>
           <tbody>
-            <tr><td>Read Linear issues / projects</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="cond">¹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>CLAUDE.md › Rules of Engagement 1</td></tr>
-            <tr><td>Create issue · comment · move status</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>queue-drain › "subagents never write to Linear"</td></tr>
+            <tr><td>Read issues / projects</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="cond">¹</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>CLAUDE.md › Rules of Engagement 1</td></tr>
+            <tr><td>Create issue · comment · move status</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>queue-drain › "subagents never write to an issue"</td></tr>
             <tr><td>Close/cancel/reassign someone else's issue</td><td><span class="yes">✓</span></td><td><span class="cond">²</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Rules of Engagement 4</td></tr>
             <tr><td>Clone base repo · create worktree</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>Multiple Tickets at Once</td></tr>
             <tr><td>Commit · push · open PR (ready)</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="cond">³</span></td><td><span class="cond">¹⁰</span></td><td><span class="no">✗</span></td><td>Git Discipline</td></tr>
@@ -499,7 +499,7 @@ sequenceDiagram
         ² Only within work it was asked to do; otherwise ask. &nbsp;
         ³ From its own worktree only; PRs open ready for review and get an automatic GitHub review; draft only when human-only work is still owed. &nbsp;
         ⁴ Via a fresh reviewer subagent dispatched by the coordinator, once per PR at open. &nbsp;
-        ⁵ Only when the issue reaches Done — never at In Review. &nbsp;
+        ⁵ Only when the issue is closed — never at status/in-review. &nbsp;
         ⁶ Only REMOVABLE trees (clean, pushed, PR merged) and only with <code>--remove</code>. &nbsp;
         ⁷ Opt-in, inside the worktree, only when the ticket drives live calls. &nbsp;
         ⁸ Outside this workflow entirely. &nbsp;
@@ -517,13 +517,13 @@ flowchart TD
     IN(["Proposed write"]) --> WHO{"Who is acting?"}
     WHO -->|codex| CDXT{"Target?"}
     CDXT -->|"its own worktree — edit, test, commit"| OK0(["Allow"])
-    CDXT -->|"push · PR · Linear · network · .env"| D0["Deny — Claude pushes after a secret scan"]
+    CDXT -->|"push · PR · issue · network · .env"| D0["Deny — Claude pushes after a secret scan"]
     WHO -->|subagent| SUBT{"Target?"}
-    SUBT -->|"Linear"| D1["Deny — report to coordinator"]
+    SUBT -->|"issue write"| D1["Deny — report to coordinator"]
     SUBT -->|"a worktree not its own"| D2["Deny — one subagent = one worktree"]
     SUBT -->|"its own worktree"| OK1(["Allow"])
     WHO -->|coordinator| TGT{"Target?"}
-    TGT -->|"Linear"| SCOPE{"Within work you were asked to do?"}
+    TGT -->|"issue write"| SCOPE{"Within work you were asked to do?"}
     SCOPE -->|"yes — create, comment, status"| OK2(["Allow"])
     SCOPE -->|"no — close/cancel/reassign others' issues"| ASK["Ask the human first"]
     TGT -->|"git"| CWD{"Which repo is cwd in?"}
@@ -534,7 +534,7 @@ flowchart TD
     CWD -->|"worktree"| OK4(["Allow — commit, push, open PR"])
     TGT -->|"merge PR"| ASK
     TGT -->|"remove worktree"| DONE{"Issue is Done?"}
-    DONE -->|no| D5["Deny — In Review still needs the checkout"]
+    DONE -->|no| D5["Deny — status/in-review still needs the checkout"]
     DONE -->|yes| DIRTY{"worktree remove refuses?"}
     DIRTY -->|"dirty"| D6["Stop and report — never rm -rf"]
     DIRTY -->|"clean"| OK5(["Allow"])
@@ -560,31 +560,32 @@ flowchart TD
     <!-- ═══════════════════════ 5 · Data ═══════════════════════ -->
     <section class="card" id="data">
       <h2><span class="num">05</span> Data &amp; state</h2>
-      <p class="muted">The entities that matter: the Linear issue, its labels, and the worktree that mirrors it on disk.</p>
+      <p class="muted">The entities that matter: the GitHub issue, its labels, and the worktree that mirrors it on disk.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 erDiagram
     PROJECT ||--o{ ISSUE : "groups (optional)"
-    ISSUE ||--|| TYPE_LABEL : "Bug | Feature | Improvement"
-    ISSUE ||--|| REPO_LABEL : "Repo/… (open set)"
-    ISSUE ||--|| TIER_LABEL : "Tier/Haiku|Sonnet|Opus|Fable|Codex"
+    ISSUE ||--|| TYPE_LABEL : "bug / feature / improvement"
+    REPO ||--o{ ISSUE : "the issue lives in the repo it targets"
+    ISSUE ||--|| TIER_LABEL : "tier/haiku|sonnet|opus|fable|codex"
+    ISSUE ||--|| STATUS_LABEL : "backlog|todo|in-progress|blocked|in-review"
     ISSUE ||--o| SECURITY_LABEL : optional
     ISSUE ||--o{ COMMENT : "trail"
-    ISSUE ||--o| WORKTREE : "while In Progress / Blocked / In Review"
+    ISSUE ||--o| WORKTREE : "while in-progress / blocked / in-review"
     WORKTREE ||--o| PR : "ready + auto-review"
     WORKTREE ||--o| ENV_FILE : "only if live calls, never with Codex"
-    WORKTREE ||--o| CODEX_SESSION : "Tier/Codex only"
+    WORKTREE ||--o| CODEX_SESSION : "tier/codex only"
     BASE_CLONE ||--o{ WORKTREE : contains
     ISSUE {
-        string id "ENG-NN"
-        string status
-        string description "the prompt"
-        string gitBranchName
+        int number "42"
+        string state "open or closed"
+        string body "the prompt"
+        string branch "derived: dev/NN-slug"
     }
     WORKTREE {
-        path dir ".worktrees/ENG-NN"
-        string branch "= gitBranchName"
+        path dir ".worktrees/issue-NN"
+        string branch "= dev/NN-slug"
     }
     BASE_CLONE {
         path dir "workspace/repo"
@@ -595,20 +596,19 @@ erDiagram
         uuid session_id "resume by this, never --last"
         string model "gpt-5.6-terra default"
         string effort "high default"
-        path output "scratchpad/codex-ENG-NN.out"
+        path output "scratchpad/codex-repo-NN.out"
     }
         </pre>
       </div>
 
       <h3>Lifecycle of an issue</h3>
-      <p class="caption"><code>Needs Input</code> and <code>Blocked</code> are off-ramps, not stops. Never leave a stalled issue in Todo or In Progress.</p>
+      <p class="caption"><code>status/needs-input</code> and <code>status/blocked</code> are off-ramps, not stops. Never leave a stalled issue in status/todo or status/in-progress.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 stateDiagram-v2
     [*] --> Backlog
-    support inboxTicket --> Backlog : inbox
-    Backlog --> Todo : Repo/ + Tier/ set, workable
+    Backlog --> Todo : type + tier/ set, workable
     Todo --> InProgress : agent starts · worktree created
     Todo --> NeedsInput : ask isn't a workable prompt
     NeedsInput --> Todo : human edits description
@@ -616,15 +616,15 @@ stateDiagram-v2
     Blocked --> InProgress : dependency resolved
     InProgress --> InReview : PR open · comment posted
     InReview --> InProgress : review bounces
-    InReview --> Done : merged + verified · worktree removed
-    Backlog --> Canceled
-    Done --> [*]
+    InReview --> Closed : merged + verified · worktree removed
+    Backlog --> Canceled : closed as not planned
+    Closed --> [*]
     Canceled --> [*]
         </pre>
       </div>
 
       <div class="grid2">
-        <div class="tile"><h4>Where state lives</h4><ul><li><strong>Linear</strong> — issue status, labels, comments, project descriptions (source of truth)</li><li><strong>Target repo on GitHub</strong> — branches, PRs, CI</li><li><strong>Disk</strong> — base clones + worktrees (ephemeral, gitignored)</li><li><strong>docs/runs/</strong> — the only state Nightshift commits about a run</li><li><strong>Scratchpad</strong> — Codex <code>.out</code>/<code>.log</code> per ticket; the session UUID inside is what the fix round resumes and the Linear comment records</li></ul></div>
+        <div class="tile"><h4>Where state lives</h4><ul><li><strong>GitHub Issues</strong> — status and tier labels, comments, project descriptions (source of truth)</li><li><strong>Target repo on GitHub</strong> — branches, PRs, CI</li><li><strong>Disk</strong> — base clones + worktrees (ephemeral, gitignored)</li><li><strong>docs/runs/</strong> — the only state Nightshift commits about a run</li><li><strong>Scratchpad</strong> — Codex <code>.out</code>/<code>.log</code> per ticket; the session UUID inside is what the fix round resumes and the issue comment records</li></ul></div>
         <div class="tile"><h4>Sensitive data</h4><ul><li>Doppler <code>dev</code> secrets land in a worktree's <code>.env</code> only on opt-in; removed with the worktree</li><li><code>.env.example</code> carries names only, never values</li><li><code>Security</code> label marks issues touching credentials, redaction, exposure — seeds <code>variant-analysis</code> sweeps</li></ul></div>
       </div>
     </section>
@@ -632,17 +632,17 @@ stateDiagram-v2
     <!-- ═══════════════════════ 6 · Queue drain ═══════════════════════ -->
     <section class="card" id="drain">
       <h2><span class="num">06</span> Queue drain — batch mode</h2>
-      <p class="muted"><code>/queue-drain</code> takes the Todo column to reviewed, ready-for-review PRs plus an honest run report. Two human gates only: plan approval and PR merge. WIP cap 5; honest failure is a valid output. <code>Tier/Codex</code> tickets leave the fan-out lane for codex-dispatch, which carries its own review and PR steps, and rejoin at close.</p>
+      <p class="muted"><code>/queue-drain</code> takes the status/todo queue to reviewed, ready-for-review PRs plus an honest run report. Two human gates only: plan approval and PR merge. WIP cap 5; honest failure is a valid output. <code>tier/codex</code> tickets leave the fan-out lane for codex-dispatch, which carries its own review and PR steps, and rejoin at close.</p>
       <div class="diagram">
         <div class="tools"><button data-act="replay">replay</button><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
         <pre class="mermaid">
 flowchart TD
-    S0["0 · SWEEP<br/>sweep.sh per base clone<br/>remove REMOVABLE · report BLOCKED"] --> S1["1 · FETCH<br/>list_issues status = Todo only<br/>count open agent PRs"]
+    S0["0 · SWEEP<br/>sweep.sh per base clone<br/>remove REMOVABLE · report BLOCKED"] --> S1["1 · FETCH<br/>gh issue list status = Todo only<br/>count open agent PRs"]
     S1 --> Cap{"> ~5 unreviewed agent PRs?"}
     Cap -->|yes| Stop["STOP and report"]
-    Cap -->|no| S2["2 · TRIAGE<br/>classify · read Repo/ + Tier/<br/>write back only if missing"]
+    Cap -->|no| S2["2 · TRIAGE<br/>classify · read tier/<br/>write back if missing · transfer if misfiled"]
     S2 --> Cls{"class"}
-    Cls -->|needs-info| NI["→ Needs Input"]
+    Cls -->|needs-info| NI["→ status/needs-input"]
     Cls -->|blocked| BL["→ Blocked"]
     Cls -->|"needs-plan / decompose"| S3["3 · PLAN GATE<br/>one planner subagent each"]
     Cls -->|ready| S4
@@ -650,9 +650,9 @@ flowchart TD
     Ask -->|approve| Post["Post plan to issue"] --> S4
     Ask -->|decompose| Kids["Create child issues<br/>parent → Backlog"]
     Ask -->|"revise / park"| S3
-    S4["4 · FAN-OUT<br/>group by Repo/ · fetch once per repo<br/>coordinator creates every worktree<br/>≤ 5 implementers in one message<br/>→ In Progress as each starts"]
+    S4["4 · FAN-OUT<br/>already grouped by repo · fetch once per repo<br/>coordinator creates every worktree<br/>≤ 5 implementers in one message<br/>→ status/in-progress as each starts"]
     S4 --> Fab{"Tier?"}
-    Fab -->|"Fable — budget PROVISIONAL"| Att["Run alone, attended<br/>record wall-clock + tokens on ENG-70"]
+    Fab -->|"Fable — budget PROVISIONAL"| Att["Run alone, attended<br/>record wall-clock + tokens on the<br/>fable-calibration issue in Nightshift"]
     Fab -->|"Codex — budget PROVISIONAL"| Cdx["codex-dispatch · § 03 Codex path<br/>Codex implements in the worktree · 30m×2 · max 2<br/>Claude verifies, secret-scans, pushes, opens PR,<br/>dispatches reviewer, one fix round by UUID"]
     Fab -->|"haiku · sonnet · opus"| Impl["Implementers<br/>haiku 20m×2 · sonnet 60m×2<br/>opus 90m×2 · fable 120m×1"]
     Att --> S5
@@ -660,13 +660,13 @@ flowchart TD
     Impl --> S5["5 · VERIFY<br/>fresh reviewer per diff<br/>diff + issue + plan only"]
     S5 --> Gate{"tests pass AND review clean<br/>AND karpathy self-check?"}
     Gate -->|findings| Impl
-    Gate -->|"budget out"| Fail["Honest save_comment,<br/>then exactly one status"]
+    Gate -->|"budget out"| Fail["Honest gh issue comment,<br/>then exactly one status"]
     Fail --> Need{"What does it need?"}
     Need -->|"external dependency"| BL2["→ Blocked"]
-    Need -->|"better description"| NI2["→ Needs Input"]
+    Need -->|"better description"| NI2["→ status/needs-input"]
     Need -->|"nothing — retryable as-is"| Todo["→ Todo"]
-    Need -->|"live worktree kept"| Keep["leave In Progress"]
-    Gate -->|yes| S6["6 · CLOSE<br/>push · gh pr create (ready)<br/>auto-review → gh pr review<br/>save_comment · → In Review"]
+    Need -->|"live worktree kept"| Keep["leave status/in-progress"]
+    Gate -->|yes| S6["6 · CLOSE<br/>push · gh pr create (ready)<br/>auto-review → gh pr review<br/>gh issue comment · → status/in-review"]
     S6 --> More{"Ready tickets beyond cap?"}
     More -->|"next wave"| S4
     More -->|no| S7["7 · RETRO — mandatory<br/>docs/runs/YYYY-MM-DD-drain.md · commit"]
@@ -706,15 +706,15 @@ flowchart LR
     subgraph WS["workspace/ — gitignored"]
         Base["api-server/<br/>base clone · stays on main<br/>doppler scope: project + dev<br/>gc.auto = 0 · fetch once per batch"]
         subgraph WTS[".worktrees/"]
-            W1["ENG-42/<br/>branch = gitBranchName<br/>own node_modules"]
-            W2["ENG-43/<br/>issue Blocked → tree kept"]
+            W1["issue-42/<br/>branch = dev/NN-slug<br/>own node_modules"]
+            W2["issue-43/<br/>issue Blocked → tree kept"]
         end
     end
     Dop[("🔐 Doppler")] -.->|"npm run env-sync<br/>inside the worktree · dev only"| W1
     Base -->|"git worktree add"| W1
     Base -->|"git worktree add"| W2
     W1 -->|"push · gh pr create"| PR["🐙 PR on origin"]
-    PR -->|"merged + verified ⇒ Done"| RM["git worktree remove<br/>takes .env with it · prune"]
+    PR -->|"merged + verified ⇒ closed"| RM["git worktree remove<br/>takes .env with it · prune"]
     Sweep["sweep.sh<br/>before every batch"] -->|"clean AND pushed AND PR merged"| RM
     Sweep -->|"any test fails"| Rep["Report as BLOCKED tree<br/>never rm -rf"]
     W2 -.-> Rep
@@ -733,7 +733,7 @@ flowchart LR
           <tbody>
             <tr><td><span class="badge info">Nightshift root</span></td><td>this repo</td><td>skills, docs, <code>.env.example</code> (names only)</td><td>—</td><td>coordinator, human</td></tr>
             <tr><td><span class="badge info">workspace/&lt;repo&gt;</span></td><td>target repo (<code>main</code>)</td><td>base clone — branched from, fetched into, never edited</td><td>Doppler scope set once here</td><td>coordinator (fetch only)</td></tr>
-            <tr><td><span class="badge warn">.worktrees/ENG-NN</span></td><td>target repo (branch)</td><td>the fix; optional <code>.env</code></td><td>Doppler <code>dev</code> via env-sync</td><td>one subagent</td></tr>
+            <tr><td><span class="badge warn">.worktrees/issue-NN</span></td><td>target repo (branch)</td><td>the fix; optional <code>.env</code></td><td>Doppler <code>dev</code> via env-sync</td><td>one subagent</td></tr>
             <tr><td><span class="badge danger">prd config</span></td><td>—</td><td>never touched by this workflow</td><td>—</td><td>nobody here</td></tr>
           </tbody>
         </table>
@@ -747,23 +747,23 @@ flowchart LR
         <div class="tile"><h4>Start a ticket by hand</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">git clone &lt;url&gt; workspace/&lt;repo&gt;     # once
 cd workspace/&lt;repo&gt;
 git fetch origin
-git worktree add .worktrees/ENG-42 \
-  -b &lt;gitBranchName&gt; origin/main
-cd .worktrees/ENG-42 &amp;&amp; npm ci</pre></div>
+git worktree add .worktrees/issue-42 \
+  -b &lt;dev/NN-slug&gt; origin/main
+cd .worktrees/issue-42 &amp;&amp; npm ci</pre></div>
         <div class="tile"><h4>Drain the queue</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">/queue-drain
 # or: "drain the queue"
 bash .claude/skills/queue-drain/scripts/sweep.sh workspace/&lt;repo&gt;
 bash … sweep.sh workspace/&lt;repo&gt; --remove</pre></div>
-        <div class="tile"><h4>Dispatch to Codex (Tier/Codex)</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">codex --version &amp;&amp; codex login status   # once per run
+        <div class="tile"><h4>Dispatch to Codex (tier/codex)</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">codex --version &amp;&amp; codex login status   # once per run
 timeout 600 codex exec -m gpt-5.6-terra \
   --config model_reasoning_effort="high" \
   --config sandbox_workspace_write.network_access=false \
   --sandbox workspace-write --full-auto --skip-git-repo-check \
-  -C .worktrees/ENG-42 -o $SCRATCH/codex-ENG-42.out \
-  "&lt;description verbatim + contract&gt;" &lt;/dev/null 2&gt;$SCRATCH/codex-ENG-42.log
-grep -m1 '^session id:' $SCRATCH/codex-ENG-42.log   # keep the UUID
+  -C .worktrees/issue-42 -o $SCRATCH/codex-Redline-42.out \
+  "&lt;description verbatim + contract&gt;" &lt;/dev/null 2&gt;$SCRATCH/codex-Redline-42.log
+grep -m1 '^session id:' $SCRATCH/codex-Redline-42.log   # keep the UUID
 # fix round: … resume &lt;uuid&gt; "findings"  (never --last)</pre></div>
-        <div class="tile"><h4>Tear down</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">git -C workspace/&lt;repo&gt; worktree remove .worktrees/ENG-42
+        <div class="tile"><h4>Tear down</h4><pre style="margin:.3rem 0 0;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap">git -C workspace/&lt;repo&gt; worktree remove .worktrees/issue-42
 git -C workspace/&lt;repo&gt; worktree prune
 git worktree list    # find leftovers</pre></div>
         <div class="tile"><h4>Known failure modes</h4><ul>
@@ -781,7 +781,7 @@ git worktree list    # find leftovers</pre></div>
       </div>
       <div class="callout danger">
         <strong>Do not</strong>
-        Work in the base clone. <code>git add workspace/</code> from the root. <code>rm -rf</code> a worktree. Copy a <code>.env</code> between worktrees. Touch <code>prd</code>. Put <code>DOPPLER_TOKEN</code> in a subagent's environment. Pass a label name like <code>Tier/Sonnet</code> straight into <code>model:</code>. Park an unworkable issue in Todo. Dispatch with permission-skip flags. Fake a green gate. <code>env-sync</code> into a Codex worktree. Let Codex push. Resume Codex with <code>--last</code>. Push a Codex diff without the secret scan.
+        Work in the base clone. <code>git add workspace/</code> from the root. <code>rm -rf</code> a worktree. Copy a <code>.env</code> between worktrees. Touch <code>prd</code>. Put <code>DOPPLER_TOKEN</code> in a subagent's environment. Pass a full label like <code>tier/sonnet</code> into <code>model:</code> without stripping the prefix. Park an unworkable issue in <code>status/todo</code>. Dispatch with permission-skip flags. Fake a green gate. <code>env-sync</code> into a Codex worktree. Let Codex push. Resume Codex with <code>--last</code>. Push a Codex diff without the secret scan.
       </div>
     </section>
 
@@ -793,21 +793,22 @@ git worktree list    # find leftovers</pre></div>
           <h3 style="margin-top:0">Terms</h3>
           <dl>
             <dt><strong>Base clone</strong></dt><dd class="muted"><code>workspace/&lt;repo&gt;</code>; stays on <code>main</code>, exists to be branched from and fetched into.</dd>
-            <dt><strong>Worktree</strong></dt><dd class="muted"><code>.worktrees/ENG-NN</code> under the base clone; one per issue; the only place a fix is edited.</dd>
-            <dt><strong>Coordinator</strong></dt><dd class="muted">The main Claude session; owns Linear writes, worktrees, and the report.</dd>
-            <dt><strong>Off-ramp</strong></dt><dd class="muted"><code>Needs Input</code> (ask unworkable) or <code>Blocked</code> (external dependency) — honest parking for a stalled issue.</dd>
-            <dt><strong>BLOCKED tree</strong></dt><dd class="muted">A worktree that fails the sweep's three tests; reported, never deleted. Independent of Linear's <code>Blocked</code> status.</dd>
-            <dt><strong>Tier</strong></dt><dd class="muted">The model an issue needs, recorded once as <code>Tier/…</code>; label is capitalized, <code>model:</code> string is lowercase.</dd>
+            <dt><strong>Worktree</strong></dt><dd class="muted"><code>.worktrees/issue-NN</code> under the base clone; one per issue; the only place a fix is edited.</dd>
+            <dt><strong>Coordinator</strong></dt><dd class="muted">The main Claude session; owns issue writes, worktrees, and the report.</dd>
+            <dt><strong>Off-ramp</strong></dt><dd class="muted"><code>status/needs-input</code> (ask unworkable) or <code>status/blocked</code> (external dependency) — honest parking for a stalled issue.</dd>
+            <dt><strong>BLOCKED tree</strong></dt><dd class="muted">A worktree that fails the sweep's three tests; reported, never deleted. Independent of the <code>status/blocked</code> label.</dd>
+            <dt><strong>Tier</strong></dt><dd class="muted">The model an issue needs, recorded once as <code>tier/…</code>; strip the <code>tier/</code> prefix to get the <code>model:</code> string.</dd>
             <dt><strong>Drain</strong></dt><dd class="muted">One <code>/queue-drain</code> run: sweep → fetch → triage → plan gate → fan-out → verify → close → retro.</dd>
-            <dt><strong>Codex / Tier/Codex</strong></dt><dd class="muted">The OpenAI Codex CLI as implementer, opted into per ticket by a human. Not a Claude tier: maps to no <code>model:</code> string; routes to codex-dispatch.</dd>
-            <dt><strong>codex-dispatch</strong></dt><dd class="muted">First-party skill: the Linear lifecycle around a sandboxed <code>codex exec</code> — Codex commits, Claude verifies, pushes, opens the PR, reviews, and runs one fix round.</dd>
-            <dt><strong>Session UUID</strong></dt><dd class="muted">Codex's session id, read from the <code>session id:</code> log line. The fix round resumes by it (never <code>--last</code>) and the Linear close-out records it.</dd>
+            <dt><strong>Codex / tier/codex</strong></dt><dd class="muted">The OpenAI Codex CLI as implementer, opted into per ticket by a human. Not a Claude tier: maps to no <code>model:</code> string; routes to codex-dispatch.</dd>
+            <dt><strong>codex-dispatch</strong></dt><dd class="muted">First-party skill: the issue lifecycle around a sandboxed <code>codex exec</code> — Codex commits, Claude verifies, pushes, opens the PR, reviews, and runs one fix round.</dd>
+            <dt><strong>Session UUID</strong></dt><dd class="muted">Codex's session id, read from the <code>session id:</code> log line. The fix round resumes by it (never <code>--last</code>) and the issue close-out records it.</dd>
           </dl>
         </div>
         <div>
           <h3 style="margin-top:0">Doc changelog</h3>
           <ul class="changelog">
-            <li><time>2026-09-01</time> Added the Codex path: <code>Tier/Codex</code> in the big picture, ticket flow, a dedicated codex-dispatch flowchart + sequence view, permissions row and footnotes, data model, drain routing, ops tile, failure modes.</li>
+            <li><time>2026-09-04</time> Migrated the system of record from Linear to GitHub Issues: status is now an exclusive <code>status/…</code> label, the <code>Repo/</code> dimension is gone (an issue lives in the repo it targets), tiers are lowercase <code>tier/…</code>, and every tracker call is <code>gh</code>.</li>
+            <li><time>2026-09-01</time> Added the Codex path: <code>tier/codex</code> in the big picture, ticket flow, a dedicated codex-dispatch flowchart + sequence view, permissions row and footnotes, data model, drain routing, ops tile, failure modes.</li>
             <li><time>2026-08-28</time> PRs open ready for review with an automatic GitHub review at open.</li>
             <li><time>2026-08-21</time> Rebuilt on <code>templates/app-doc-template.html</code>: themed, added permissions model, data model, sequence view.</li>
             <li><time>2026-08-21</time> Initial five-flowchart version.</li>

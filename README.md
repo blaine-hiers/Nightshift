@@ -2,7 +2,7 @@
 
 Nightshift is not a software project. It is the working environment for doing
 tracked engineering work **in other repositories**: one command turns a queue
-of ready tickets into reviewed pull requests, with the tracker as the system
+of ready tickets into reviewed pull requests, with GitHub Issues as the system
 of record throughout.
 
 The repo tracks the workflow, never the code being worked on. Target repos are
@@ -30,14 +30,15 @@ Two properties make it safe to leave running:
 
 The status model exists to keep the queue drainable, and one rule carries it:
 
-> **`Todo` means an agent can start right now with zero questions.**
+> **`status/todo` means an agent can start right now with zero questions.**
 
-Anything that would make an agent stop and ask belongs in `Needs Input`
+Anything that would make an agent stop and ask belongs in `status/needs-input`
 instead. Anything stalled on something outside the agent loop, a vendor, a
-credential, a human decision, belongs in `Blocked`.
+credential, a human decision, belongs in `status/blocked`.
 
-Never leave a stalled ticket in `Todo` or `In Progress`. `In Progress` with
-nobody working it makes "what is active" meaningless, and `Todo` re-queues it
+Never leave a stalled ticket in `status/todo` or `status/in-progress`.
+`status/in-progress` with nobody working it makes "what is active"
+meaningless, and `status/todo` re-queues it
 into the next drain, which burns a fresh agent rediscovering the same blocker.
 Both off-ramps require a comment naming what is being waited on and who owns
 it, or the status is just a shrug.
@@ -59,7 +60,7 @@ what a single drain can spend.
 
 ## Cross-model review
 
-`codex-dispatch` works a `Tier/Codex` ticket with Codex as the implementer in a
+`codex-dispatch` works a `tier/codex` ticket with Codex as the implementer in a
 sandboxed worktree and Claude as coordinator and reviewer. Codex reviews the
 diff first, read-only and fresh, then the Claude reviewer runs as the gating
 verdict, with one fix round per review stage.

@@ -1,17 +1,19 @@
-# Subagent prompt templates (queue-drain stages 4-5)
+# Subagent prompt templates (queue-drain stages 4-6)
 
 Fill every {placeholder}. Dispatch via the Agent tool with `model: "{tier}"`
-— **the lowercase model id, not the Linear label**. Linear capitalizes label
-names, so `Tier/Sonnet` dispatches as `model: "sonnet"`; passing `"Sonnet"`
-fails the enum. Never add permission-skip flags.
+— the tier label with its `tier/` prefix stripped, so `tier/sonnet`
+dispatches as `model: "sonnet"`. Labels are lowercase already, so no case
+translation is needed anywhere. Never add permission-skip flags.
+
+{issue-ref} is `<repo>#<number>` (e.g. `Redline#24`).
 
 ## IMPLEMENTER PROMPT
 
-    You are fixing ONE Linear issue. Work ONLY in your worktree.
+    You are fixing ONE GitHub issue. Work ONLY in your worktree.
 
-    Issue {issue-id}: {title}
-    --- description (verbatim) ---
-    {full Linear description}
+    Issue {issue-ref}: {title}
+    --- issue body (verbatim) ---
+    {full issue body}
     --- {if plan} approved plan (verbatim) ---
     {plan comment}
     ---
@@ -29,14 +31,15 @@ fails the enum. Never add permission-skip flags.
     - Reproduce before fixing. Apply the karpathy-guidelines skill: no
       silent assumptions, no orthogonal changes, no over-engineering.
     - Run the repo's test suite before claiming done.
-    - Commit in the worktree (short imperative subject). Do NOT push, do
-      NOT open a PR, do NOT touch Linear — the coordinator owns those.
+    - Commit in the worktree (short imperative subject, referencing
+      #{issue-number}). Do NOT push, do NOT open a PR, do NOT comment on
+      or edit the issue — the coordinator owns those.
     - Doppler: only if instructed in this prompt; then `npm run env-sync`
       in the worktree, dev config only; if .env says prd, stop and report.
 
-    Your report is read by the coordinator and copied into Linear and PR
-    bodies. NEVER put a real credential value, a real person's full name,
-    or a real phone number in it — refer to file:line and mask values
+    Your report is read by the coordinator and copied into issue comments
+    and PR bodies. NEVER put a real credential value, a real person's full
+    name, or a real phone number in it — refer to file:line and mask values
     (first two chars + length). Test fixtures must use invented strings.
 
     Report back EXACTLY:
@@ -52,15 +55,15 @@ fails the enum. Never add permission-skip flags.
 
 ## REVIEWER PROMPT (stage 5 — pre-PR, findings go to the implementer)
 
-Fresh subagent, sonnet by default (opus if the ticket's tier is `Tier/Opus`
-or `Tier/Fable`, or if it carries `Security`). It gets ONLY what is in this prompt — never
-the implementer's transcript.
+Fresh subagent, sonnet by default (opus if the ticket's tier is `tier/opus`
+or `tier/fable`, or if it carries `security`). It gets ONLY what is in this
+prompt — never the implementer's transcript.
 
     You are reviewing a diff for correctness. You did not write it.
 
-    Issue {issue-id}: {title}
-    --- description (verbatim) ---
-    {full Linear description}
+    Issue {issue-ref}: {title}
+    --- issue body (verbatim) ---
+    {full issue body}
     --- {if plan} approved plan ---
     {plan comment}
     --- diff ---
@@ -69,8 +72,8 @@ the implementer's transcript.
     Verify by RUNNING, not reading: execute the tests, reproduce each
     claimed behaviour, and probe the edge cases with throwaway scripts in
     the worktree (never push, never call a live API). Your report is
-    copied into Linear and PR bodies — never echo a real credential value,
-    full name, or phone number; refer to file:line and mask values.
+    copied into issue comments and PR bodies — never echo a real credential
+    value, full name, or phone number; refer to file:line and mask values.
     Use the differential-review skill. Report ONLY correctness findings:
     bugs, missed acceptance criteria, regressions, blast-radius risks,
     unhandled failure modes. Style and architecture preferences are OUT
@@ -102,12 +105,12 @@ Fresh subagent, same tier rule as the stage-5 reviewer. Runs once per PR,
 immediately after `gh pr create`. It never sees the implementer's or the
 stage-5 reviewer's transcript.
 
-    You are reviewing pull request #{pr-number} in {org/repo} for
+    You are reviewing pull request #{pr-number} in {owner/repo} for
     correctness. You did not write it. Post your verdict on the PR.
 
-    Issue {issue-id}: {title}
-    --- description (verbatim) ---
-    {full Linear description}
+    Issue {issue-ref}: {title}
+    --- issue body (verbatim) ---
+    {full issue body}
     --- {if plan} approved plan ---
     {plan comment}
     ---
@@ -115,7 +118,7 @@ stage-5 reviewer's transcript.
     switch branches, never push): {absolute worktree path}
 
     Steps:
-    1. `gh pr diff {pr-number} -R {org/repo}` — read the whole diff.
+    1. `gh pr diff {pr-number} -R {owner/repo}` — read the whole diff.
     2. Run the repo's test suite in the worktree and record the counts.
     3. Verify by RUNNING, not reading: reproduce each claimed behaviour
        and probe edge cases with throwaway scripts (never call a live API,
@@ -125,8 +128,8 @@ stage-5 reviewer's transcript.
        blast-radius risks, unhandled failure modes. Style/architecture
        preferences are OUT OF SCOPE. Do not invent findings.
     5. Post ONE review on the PR:
-       - no findings → `gh pr review {pr-number} -R {org/repo} --comment -b "<body>"`
-       - findings    → `gh pr review {pr-number} -R {org/repo} --request-changes -b "<body>"`
+       - no findings → `gh pr review {pr-number} -R {owner/repo} --comment -b "<body>"`
+       - findings    → `gh pr review {pr-number} -R {owner/repo} --request-changes -b "<body>"`
        GitHub refuses `--request-changes` (and `--approve`) on a PR the
        same account authored, which is every PR this pipeline opens. When
        it does, post `--comment` instead with the first line
