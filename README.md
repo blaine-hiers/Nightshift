@@ -119,3 +119,13 @@ tests/             sweep tests
 ```bash
 bash tests/sweep_test.sh
 ```
+
+## License
+
+MIT for the first-party work here: the `queue-drain` and `codex-dispatch`
+skills, the docs, and the sweep tests.
+
+The fourteen third-party skills vendored under `.claude/skills/` keep their own
+licenses and each carries its own license file. The Trail of Bits skills are
+**CC BY-SA 4.0**, not MIT, and share-alike follows any adapted copy. `NOTICE`
+has the details and `docs/skills.md` has the provenance.

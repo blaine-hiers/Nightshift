@@ -1,0 +1,23 @@
+Nightshift
+Copyright (c) 2026 Blaine Hiers
+
+The MIT license in LICENSE covers the first-party work in this repository:
+the queue-drain and codex-dispatch skills, the docs, and the sweep tests.
+
+It does NOT cover the third-party skills vendored under .claude/skills/.
+Those keep the licenses they were published under, and each carries its own
+license file next to it. Provenance for every one of them is recorded in
+docs/skills.md and pinned in skills-lock.json.
+
+In particular:
+
+  - Skills from trailofbits/skills are CC BY-SA 4.0, not MIT. See
+    .claude/skills/TRAILOFBITS-LICENSE.txt. Share-alike applies to adapted
+    material, so a modified copy of one of those skills carries CC BY-SA 4.0
+    with it and cannot be relicensed under the MIT terms above.
+  - Skills from mattpocock/skills are MIT, with LICENSE.txt in each folder.
+  - webapp-testing is from anthropics/skills under the terms in its own
+    LICENSE.txt.
+
+If you reuse a skill from this repository, check that skill's own license
+before you assume the terms above apply to it.
