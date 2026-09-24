@@ -18,7 +18,10 @@ translation is needed anywhere. Never add permission-skip flags.
     {plan comment}
     ---
     Worktree: {absolute worktree path} (branch already created — never
-    switch branches, never touch any other directory)
+    switch branches, never touch any other directory). Run every command
+    inside it (cd there first, or `git -C <path>`), whatever the session's
+    "primary working directory" banner says, and before committing confirm
+    `git branch --show-current` prints {branch}.
     Budget: {tier budget, per SKILL.md} minutes. If you cannot finish, STOP
     and report honestly.
     {if RUN_FP_CHECK} Before any code change, use the fp-check skill to
@@ -69,6 +72,8 @@ prompt — never the implementer's transcript.
     --- diff ---
     {output of: git -C {worktree} diff origin/main...HEAD}
     ---
+    Any server you start (dev/preview) you stop by its own PID — never a
+    broad `taskkill /IM node.exe` or `pkill node`.
     Verify by RUNNING, not reading: execute the tests, reproduce each
     claimed behaviour, and probe the edge cases with throwaway scripts in
     the worktree (never push, never call a live API). Your report is
