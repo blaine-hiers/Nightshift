@@ -65,3 +65,15 @@ headroom drain (14 feature tickets → one PR).
 - Resolve conflicts with a small node script (region → resolution function)
   written to the scratchpad, not with inline shell. Apostrophes in inline
   `node -e '…'` break bash quoting.
+
+## Lessons from the 2026-09-24 lmstudio-automation run (31 tickets, one PR)
+
+- **Keep one living contracts file per batch** in the scratchpad (foundation APIs + "lessons from reviews so far") and have every implementer and reviewer prompt read it first. Append each lesson the moment a review finds a new bug class (per-item isolation, bounded model input, disclosed truncation, safe URLs, cursor rules). Repeats of a bug class dropped sharply after a lesson landed in the file.
+- **Put shared prompt boilerplate in files** (`implementer-rules.md`, `reviewer-rules.md` in the scratchpad) and keep each dispatch prompt to the ticket-specific notes. That keeps 60+ dispatches consistent and short.
+- **A bug class found in one ticket's review is swept across its siblings straight away.** The day-granularity Gmail cursor bug surfaced in #20's review, but #7, #12 and #13 had the same pattern already merged. Fix it once, centrally (a shared module), on its own integration branch with a review, not ticket by ticket.
+- **Budget two integration fix rounds for data-loss-critical shared code.** The whole-branch integration review found 11 cross-feature bugs, and its re-review found more edge cases in the same cursor design. The fix that converged replaced the design with a simpler one (the coordinator's call); patching the old design a third time would not have.
+- **Retries count toward the WIP cap.** Sending attempt-2s back while new tickets were in flight pushed concurrency to 7. Hold new dispatches until retries drain.
+- **Security, write-path and data-loss tickets need an opus reviewer, and an opus re-review after attempt 2.** Three sonnet tickets (#15, #16, #25) had to be escalated to opus mid-run. Tier such tickets `opus` at filing.
+- **The merge script must fail loudly.** A `pytest | tail -1` pipeline masks pytest's exit code; twice a commit or merge went through on red. Use `set -o pipefail`, or check `$?` before `git commit`. Union-resolve append-only files (dependency lists, `.env.example` names) automatically, and resolve everything else by hand.
+- **Commit-trailer rules go in the implementer prompt from dispatch one.** Subagents add the harness's default `Co-Authored-By` trailer unless told not to. Stripping it afterwards rewrites history, which then needs a force-push (the permission check blocks that) or a new branch name.
+- **Coordinator edits go through the Edit tool, not string replacement in heredoc Python.** Backslash escapes (`\n`, `\D`, `ö`) got mangled three times in this run.

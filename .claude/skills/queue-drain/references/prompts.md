@@ -37,6 +37,8 @@ translation is needed anywhere. Never add permission-skip flags.
     - Commit in the worktree (short imperative subject, referencing
       #{issue-number}). Do NOT push, do NOT open a PR, do NOT comment on
       or edit the issue — the coordinator owns those.
+    - Follow the owner's commit-trailer rule ({trailer rule, e.g. "no
+      Co-Authored-By trailer"}) on every commit, including attempt 2.
     - Doppler: only if instructed in this prompt; then `npm run env-sync`
       in the worktree, dev config only; if .env says prd, stop and report.
 
