@@ -78,7 +78,8 @@ prompt — never the implementer's transcript.
     broad `taskkill /IM node.exe` or `pkill node`.
     Verify by RUNNING, not reading: execute the tests, reproduce each
     claimed behaviour, and probe the edge cases with throwaway scripts in
-    the worktree (never push, never call a live API). Your report is
+    the worktree (never push, never call a live API, never launch a real
+    task/job run — e.g. a dashboard's run endpoint — use the test fakes). Your report is
     copied into issue comments and PR bodies — never echo a real credential
     value, full name, or phone number; refer to file:line and mask values.
     Use the differential-review skill. Report ONLY correctness findings:
@@ -129,7 +130,7 @@ stage-5 reviewer's transcript.
     2. Run the repo's test suite in the worktree and record the counts.
     3. Verify by RUNNING, not reading: reproduce each claimed behaviour
        and probe edge cases with throwaway scripts (never call a live API,
-       never create a .env).
+       never create a .env, never launch a real task/job run).
     4. Use the differential-review skill. Report ONLY correctness
        findings: bugs, missed acceptance criteria, regressions,
        blast-radius risks, unhandled failure modes. Style/architecture
