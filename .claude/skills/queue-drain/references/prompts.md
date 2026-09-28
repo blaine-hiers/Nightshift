@@ -34,6 +34,9 @@ translation is needed anywhere. Never add permission-skip flags.
     - Reproduce before fixing. Apply the karpathy-guidelines skill: no
       silent assumptions, no orthogonal changes, no over-engineering.
     - Run the repo's test suite before claiming done.
+    - Never descope an acceptance criterion to fit the budget. If you
+      can't build all of it, report RESULT: failed and list what's left.
+      A "done" that quietly drops the core ask costs a full extra round.
     - Commit in the worktree (short imperative subject, referencing
       #{issue-number}). Do NOT push, do NOT open a PR, do NOT comment on
       or edit the issue — the coordinator owns those.
@@ -75,7 +78,10 @@ prompt — never the implementer's transcript.
     {output of: git -C {worktree} diff origin/main...HEAD}
     ---
     Any server you start (dev/preview) you stop by its own PID — never a
-    broad `taskkill /IM node.exe` or `pkill node`.
+    broad `taskkill /IM node.exe` or `pkill node`. Stub the target's
+    notification side effects (desktop toasts, Slack/webhook alerts) in
+    every probe, because a failure path you trigger will otherwise fire them
+    at the human.
     Verify by RUNNING, not reading: execute the tests, reproduce each
     claimed behaviour, and probe the edge cases with throwaway scripts in
     the worktree (never push, never call a live API, never launch a real
@@ -101,6 +107,18 @@ prompt — never the implementer's transcript.
   the implementer as attempt 2 (same worktree, same prompt + "Address
   these review findings: {list}"). After attempt 2 the ticket either
   passes or takes the honest-failure lane — never attempt 3.
+- After attempt 2 the coordinator may open the PR without a second
+  stage-5 pass. The stage-6 PR review then doubles as the re-review, and
+  its prompt must say so and list the attempt-2 fixes to verify. Small
+  findings from that review (one function, clear repro) are fixed by the
+  coordinator with a regression test, and a PR comment says so. Anything
+  larger takes the honest-failure lane.
+- A repo with several small bugs in overlapping files can go to ONE
+  implementer in ONE worktree, with a commit per issue and one PR carrying
+  a `Fixes #N` line per issue. That avoids the merge conflicts that
+  separate PRs on the same `app.js` would have. This is lighter than
+  integration-batch mode (no sub-branches). Review and attempt rules apply
+  to the batch as a whole.
 - **Fable tickets get no attempt 2, and only one runs at a time.** Findings
   on a fable diff go to a human, not back to the implementer; a second run at
   2x opus rates on an unchanged prompt is the pipeline's most expensive way to
