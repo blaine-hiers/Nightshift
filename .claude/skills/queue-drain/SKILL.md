@@ -182,6 +182,8 @@ the PR to the issue and closes it on merge — plus root cause, fix summary,
 and the stage-5 review findings. Open **ready for review**; add `--draft`
 only when the ticket still owes human-only work, and name it in the body.
 
+**Branch protection & auto-merge.** When the target repo requires branches to be up to date before merging, run `gh pr update-branch` to add a merge commit on the remote. Auto-merge is disabled on these repos (`gh pr merge --auto` fails), so wait with `gh pr checks --watch` and merge once checks pass.
+
 **Auto-review the PR.** Once the PR exists, dispatch a fresh reviewer
 subagent (PR-review template in `references/prompts.md`, same tier rule as
 stage 5) that checks out nothing — it reads the PR diff via `gh pr diff`,

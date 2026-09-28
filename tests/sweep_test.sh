@@ -103,4 +103,29 @@ EXIT_CODE=$?
 if [ "$EXIT_CODE" -eq 2 ]; then echo "ok   - usage error exits 2"
 else echo "FAIL - usage error exits 2"; echo "  got exit code: $EXIT_CODE"; FAILS=$((FAILS+1)); fi
 
+# T11: behind-only (remote moved on) => REMOVABLE once PR is merged
+cd "$TMP/base"
+git worktree add -q .worktrees/issue-4 -b test/issue-4
+( cd .worktrees/issue-4 && git config user.email t@t && git config user.name t \
+  && echo commit1 > j.txt && git add j.txt && git commit -qm "local commit" && git push -qu origin test/issue-4 )
+# Now simulate gh pr update-branch by adding a commit on the bare origin repo directly
+cd "$TMP/origin.git"
+PARENT=$(git rev-parse refs/heads/test/issue-4)
+NEWTREE=$(git -C "$TMP/base" rev-parse origin/test/issue-4^{tree})
+NEWCOMM=$(git commit-tree -p "$PARENT" -m "merge commit on remote" "$NEWTREE")
+git update-ref refs/heads/test/issue-4 "$NEWCOMM"
+# Fetch in worktree to see the new remote commit; upstream should already be tracking
+( cd "$TMP/base/.worktrees/issue-4" && git fetch -q origin )
+OUT="$(bash "$SWEEP" "$TMP/base" --skip-pr-check)"
+assert_contains "$OUT" "REMOVABLE" "behind-only worktree (after gh pr update-branch) is REMOVABLE"
+
+# T12: ahead-only (local has unpushed commits) => BLOCKED unpushed
+cd "$TMP/base"
+git worktree add -q .worktrees/issue-5 -b test/issue-5
+( cd .worktrees/issue-5 && git config user.email t@t && git config user.name t \
+  && echo commit1 > k.txt && git add k.txt && git commit -qm "first commit" && git push -q origin test/issue-5 \
+  && echo commit2 > k.txt && git commit -qam "unpushed commit" )
+OUT="$(bash "$SWEEP" "$TMP/base")"
+assert_contains "$OUT" "unpushed" "ahead-only worktree (has unpushed commits) is BLOCKED unpushed"
+
 echo; if [ "$FAILS" -eq 0 ]; then echo "ALL PASS"; else echo "$FAILS FAILURES"; exit 1; fi
