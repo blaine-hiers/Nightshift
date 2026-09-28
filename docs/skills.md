@@ -46,6 +46,16 @@ From [spillwavesolutions/design-doc-mermaid](https://github.com/spillwavesolutio
 
 - **design-doc-mermaid** — Mermaid flowchart/sequence/architecture/deployment diagrams in Markdown, with per-type syntax guides, a troubleshooting list of common render errors, and Python scripts to extract/validate/render diagrams (the scripts need the `mmdc` CLI — `npm i -g @mermaid-js/mermaid-cli` — and only shell out to it; reviewed 2026-08-21, no network or credential access). Its SKILL.md mentions `perplexity`/`brave`/`gemini` fallbacks that aren't installed here — skip those steps. Installed via `find-skills`; pinned in `skills-lock.json`.
 
+From [tt-a1i/archify](https://github.com/tt-a1i/archify) (MIT, `LICENSE` in the skill folder; derived from Cocoon-AI/architecture-diagram-generator):
+
+- **archify** — renders architecture / workflow / sequence / dataflow / lifecycle diagrams from a small typed JSON spec into a self-contained interactive HTML artifact (inline SVG, dark/light, pan/zoom/search/trace, PNG/SVG/WebM export), with JSON Schema validation, a `deliver` step that emits SHA-256 receipts, and headless-Chrome `visual-check` evidence. Pure Node ≥18 with **zero runtime dependencies**; drive it via `node bin/archify.mjs <doctor|guide|validate|deliver|visual-check|preview|brands|demo>`. Complements `design-doc-mermaid`: Mermaid for diagrams-in-Markdown, archify for a standalone polished HTML artifact (it also ingests pasted Mermaid).
+
+  Installed 2026-09-08 by direct clone at upstream `1072200`, vendoring `archify/` from the repo root. Reviewed file by file. **Two deviations from upstream:**
+  - Upstream ships a phone-home version check (`scripts/check-update.mjs` → `https://tt-a1i.github.io/archify/skill-updates/archify/stable.json`) that SKILL.md told the agent to run on every diagram. It was a bounded, payload-free GET that never downloaded or installed anything, but it is still an unprompted external network call, so **the "Update awareness" section and both update scripts were removed**. Re-check for upstream releases by hand.
+  - `test/` (needs devDeps and repo-root scripts that aren't vendored) and the five pre-rendered example HTMLs (~4 MB, regenerate with `node bin/archify.mjs examples`) were left out; `package.json`'s `test`/`check:release-identity` scripts consequently don't run. `doctor` passes all 15 checks without them.
+
+  The only remaining network path is `brands capture "<url>"`, which fetches a logo **solely** from a URL the user supplies — guarded against credentials-in-URL, non-standard ports, private/link-local addresses, and DNS rebinding (it pins the validated IP at socket time). `preview` binds `127.0.0.1` only and checks the `Host` header. No credential access, no obfuscated code, nothing that overrides user intent.
+
 All 13 third-party skills from before 2026-09-01 have provenance entries in `skills-lock.json` (`codex`, installed 2026-09-01 by direct clone, is not in the lock file) for `find-skills` (`npx skills` CLI); only `design-doc-mermaid` carries a CLI-computed hash. Note: `skills-lock.json` is consumed by `find-skills`, not checked by `file-drift-sentinel` — hash pinning for drift detection is a follow-up decision.
 
 ## First-party
