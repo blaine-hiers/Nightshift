@@ -182,7 +182,7 @@ the PR to the issue and closes it on merge — plus root cause, fix summary,
 and the stage-5 review findings. Open **ready for review**; add `--draft`
 only when the ticket still owes human-only work, and name it in the body.
 
-**Branch protection & auto-merge.** When the target repo requires branches to be up to date before merging, run `gh pr update-branch` to add a merge commit on the remote. Auto-merge is disabled on these repos (`gh pr merge --auto` fails), so wait with `gh pr checks --watch` and merge once checks pass.
+**Branch protection & auto-merge.** When the target repo requires branches to be up to date before merging, run `gh pr update-branch` to add a merge commit on the remote. Auto-merge is disabled on these repos (`gh pr merge --auto` fails), so wait with `gh pr checks --watch` and merge once checks pass. If `gh pr merge` keeps saying the head is out of date after `update-branch` reported success, the PR object is stale (GitHub's compare shows 0 behind while the PR still names an older head); `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -f base=main` forces a refresh. **Repos with no CI** (Legwork, headroom, lmstudio-automation): after merging two or more PRs into one, run the full suite once on the merged `main` — no one else will.
 
 **Auto-review the PR.** Once the PR exists, dispatch a fresh reviewer
 subagent (PR-review template in `references/prompts.md`, same tier rule as
