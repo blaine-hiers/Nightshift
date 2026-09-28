@@ -34,14 +34,35 @@ for wt in "$WT_ROOT"/*/; do
 
   branch="$(git -C "$wt" rev-parse --abbrev-ref HEAD 2>/dev/null)"
 
-  # 2. pushed? HEAD must equal the branch's ref on origin
-  remote_sha="$(git -C "$wt" ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1)"
+  # 2. pushed? Classify ahead/behind/diverged.
+  # GIT_TERMINAL_PROMPT=0: an unattended sweep must fail, never block on a
+  # credential prompt.
+  GIT_TERMINAL_PROMPT=0 git -C "$wt" fetch -q origin 2>/dev/null || true
+  remote_sha="$(GIT_TERMINAL_PROMPT=0 git -C "$wt" ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1)"
   local_sha="$(git -C "$wt" rev-parse HEAD 2>/dev/null)"
   if [ -z "$remote_sha" ]; then
     echo "BLOCKED $wt no-upstream"; continue
   fi
   if [ "$remote_sha" != "$local_sha" ]; then
-    echo "BLOCKED $wt unpushed"; continue
+    # Classify against the sha ls-remote just reported, not @{u}: if the fetch
+    # failed, @{u} is stale and could make a behind-only tree look unpushed.
+    # A failed fetch also means that sha may be missing locally -- then we
+    # can't tell, and say so.
+    if ! ahead_behind="$(git -C "$wt" rev-list --left-right --count "$remote_sha...HEAD" 2>/dev/null)"; then
+      echo "BLOCKED $wt fetch-failed"; continue
+    fi
+    behind=$(echo "$ahead_behind" | awk '{print $1}')
+    ahead=$(echo "$ahead_behind" | awk '{print $2}')
+    # Behind-only: local is ancestor of remote, nothing to push => treat as pushed
+    if [ "$behind" -gt 0 ] && [ "$ahead" -eq 0 ]; then
+      # Fast-forward to remote when removing (optional, keeps tree clean)
+      if [ "$REMOVE" -eq 1 ]; then
+        git -C "$wt" merge --ff-only -q "$remote_sha" 2>/dev/null || true
+      fi
+    else
+      # Ahead or diverged => blocked
+      echo "BLOCKED $wt unpushed"; continue
+    fi
   fi
 
   # 3. PR merged?
