@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dawnpatrol, Legwork &amp; Bindery — Feature Roadmap</title>
+<!-- Built from docs/templates/app-doc-template.html. Edit the <pre class="mermaid"> blocks;
+     keep the shared node classes (actor/service/data/external/decision/allow/deny).
+     Canonical text: docs/superpowers/plans/2026-09-08-three-app-roadmap.md -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ───────────────────────── Tokens ───────────────────────── */
+  :root {
+    --bg:        #f6f7fb;
+    --bg-elev:   #ffffff;
+    --bg-sunk:   #eef0f6;
+    --fg:        #15171f;
+    --fg-muted:  #5b6070;
+    --line:      #dfe2ec;
+    --accent:    #4f6df5;
+    --accent-fg: #ffffff;
+    --ok:        #1f9d55;
+    --warn:      #d98c07;
+    --danger:    #d7423b;
+    --shadow:    0 1px 2px rgba(20,24,40,.06), 0 8px 24px -12px rgba(20,24,40,.18);
+    --radius:    14px;
+    --font:      "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="auto"] {
+      --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+      --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+      --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0e1017; --bg-elev:#161a25; --bg-sunk:#0a0c12; --fg:#e8eaf2; --fg-muted:#9aa0b4;
+    --line:#262b3a; --accent:#7b93ff; --accent-fg:#0e1017;
+    --ok:#3ccf7a; --warn:#f2b544; --danger:#ff6b63;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8);
+  }
+
+  /* ───────────────────────── Base ───────────────────────── */
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; scroll-padding-top:84px; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15.5px/1.6 var(--font); transition:background .25s, color .25s; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code, kbd { font-family:var(--mono); font-size:.88em; background:var(--bg-sunk); border:1px solid var(--line); padding:.1em .4em; border-radius:6px; }
+  h1 { font-size:clamp(1.8rem, 3.5vw, 2.6rem); line-height:1.15; letter-spacing:-.02em; margin:.2rem 0 .5rem; font-weight:800; }
+  h2 { font-size:1.35rem; letter-spacing:-.01em; margin:0 0 .35rem; font-weight:700; display:flex; align-items:center; gap:.55rem; }
+  h2 .num { font-family:var(--mono); font-size:.75rem; color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); padding:.2em .55em; border-radius:999px; }
+  h3 { font-size:1.02rem; margin:1.2rem 0 .4rem; font-weight:650; }
+  p { margin:.25rem 0 .9rem; }
+  .muted { color:var(--fg-muted); }
+
+  /* ───────────────────────── Layout ───────────────────────── */
+  .topbar { position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--line); }
+  .topbar-inner { max-width:1240px; margin:0 auto; padding:.7rem 1.25rem; display:flex; align-items:center; gap:1rem; }
+  .brand { display:flex; align-items:center; gap:.6rem; font-weight:700; }
+  .brand .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 40%, var(--ok))); display:grid; place-items:center; color:var(--accent-fg); font-size:.95rem; }
+  .spacer { flex:1; }
+  .meta-chip { font-family:var(--mono); font-size:.74rem; color:var(--fg-muted); border:1px solid var(--line); padding:.25em .6em; border-radius:999px; background:var(--bg-elev); }
+
+  .theme-toggle { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--bg-elev); color:var(--fg); border-radius:999px; padding:.3rem .4rem .3rem .7rem; cursor:pointer; font:inherit; font-size:.85rem; font-weight:500; }
+  .theme-toggle:hover { border-color:var(--accent); }
+  .theme-toggle .track { width:38px; height:22px; border-radius:999px; background:var(--bg-sunk); border:1px solid var(--line); position:relative; transition:background .25s; }
+  .theme-toggle .knob { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--accent); transition:transform .25s; display:grid; place-items:center; font-size:.6rem; }
+  :root[data-theme="dark"] .theme-toggle .knob { transform:translateX(16px); }
+  @media (prefers-color-scheme: dark) { :root[data-theme="auto"] .theme-toggle .knob { transform:translateX(16px); } }
+
+  .page { max-width:1240px; margin:0 auto; padding:1.5rem 1.25rem 4rem; display:grid; grid-template-columns:230px minmax(0,1fr); gap:2rem; }
+  @media (max-width: 900px) { .page { grid-template-columns:1fr; } .sidebar { display:none; } }
+
+  .sidebar { position:sticky; top:84px; align-self:start; font-size:.88rem; }
+  .sidebar .label { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-muted); margin:0 0 .5rem .6rem; font-weight:600; }
+  .sidebar a { display:block; color:var(--fg-muted); padding:.38rem .6rem; border-left:2px solid transparent; border-radius:0 8px 8px 0; }
+  .sidebar a:hover { color:var(--fg); background:var(--bg-elev); text-decoration:none; }
+  .sidebar a.active { color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+
+  .hero { padding:1rem 0 1.5rem; border-bottom:1px solid var(--line); margin-bottom:1.5rem; }
+  .hero .lede { font-size:1.1rem; color:var(--fg-muted); max-width:70ch; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:.7rem; margin-top:1.2rem; }
+  .fact { background:var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:.7rem .9rem; }
+  .fact .k { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--fg-muted); font-weight:600; }
+  .fact .v { font-weight:600; margin-top:.15rem; font-family:var(--mono); font-size:.9rem; }
+
+  section.card { background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:1.35rem 1.5rem 1.2rem; margin:0 0 1.4rem; box-shadow:var(--shadow); }
+  .diagram { background:var(--bg-sunk); border:1px solid var(--line); border-radius:12px; padding:1rem; overflow-x:auto; margin:.8rem 0; position:relative; }
+  .diagram pre.mermaid { margin:0; display:flex; justify-content:center; }
+  .diagram svg { max-width:100%; height:auto; }
+  .diagram.scroll svg { max-width:none; }   /* add class="diagram scroll" for wide trees: natural size, scroll sideways */
+  .diagram .tools { position:absolute; top:.5rem; right:.5rem; display:flex; gap:.3rem; opacity:0; transition:opacity .15s; }
+  .diagram:hover .tools { opacity:1; }
+  .diagram .tools button { font:inherit; font-size:.72rem; font-family:var(--mono); background:var(--bg-elev); color:var(--fg-muted); border:1px solid var(--line); border-radius:6px; padding:.2em .5em; cursor:pointer; }
+  .diagram .tools button:hover { color:var(--fg); border-color:var(--accent); }
+  .caption { font-size:.85rem; color:var(--fg-muted); margin:-.3rem 0 .6rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:.4rem .9rem; font-size:.8rem; color:var(--fg-muted); margin-top:.4rem; }
+  .legend span { display:inline-flex; align-items:center; gap:.35rem; }
+  .legend i { width:.85em; height:.85em; border-radius:3px; border:1px solid var(--line); display:inline-block; }
+
+  .callout { border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); padding:.7rem .95rem; border-radius:0 10px 10px 0; margin:.9rem 0; }
+  .callout.warn { border-color:var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent); }
+  .callout.danger { border-color:var(--danger); background:color-mix(in srgb, var(--danger) 9%, transparent); }
+  .callout strong { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.15rem; }
+
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
+  .tile { background:var(--bg-sunk); border:1px solid var(--line); border-radius:10px; padding:.8rem .95rem; }
+  .tile h4 { margin:0 0 .3rem; font-size:.95rem; }
+  .tile ul { margin:.2rem 0 0 1.1rem; padding:0; }
+
+  table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; margin:.6rem 0 .4rem; }
+  th, td { padding:.55rem .7rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-muted); font-weight:600; background:var(--bg-sunk); white-space:nowrap; }
+  th:first-child { border-radius:8px 0 0 0; } th:last-child { border-radius:0 8px 0 0; }
+  tr:last-child td { border-bottom:none; }
+  .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  .yes, .no, .cond { display:inline-grid; place-items:center; width:1.55em; height:1.55em; border-radius:6px; font-weight:700; font-size:.85em; }
+  .yes { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .no { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .cond { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .role { display:inline-block; font-family:var(--mono); font-size:.78rem; padding:.15em .5em; border-radius:6px; border:1px solid var(--line); background:var(--bg-elev); }
+
+  .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:.15em .55em; border-radius:999px; letter-spacing:.02em; }
+  .badge.ok { background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok); }
+  .badge.warn { background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); }
+  .badge.danger { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+  .badge.info { background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+
+  .changelog li { margin-bottom:.35rem; }
+  .changelog time { font-family:var(--mono); font-size:.8rem; color:var(--fg-muted); margin-right:.5rem; }
+
+  footer { max-width:1240px; margin:0 auto; padding:0 1.25rem 2rem; color:var(--fg-muted); font-size:.82rem; }
+
+  @media print {
+    .topbar, .sidebar, .diagram .tools { display:none !important; }
+    .page { grid-template-columns:1fr; }
+    section.card { box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="logo">◆</span> Three-App Roadmap</div>
+    <span class="meta-chip">2026-09-08</span>
+    <span class="meta-chip">blaine-hiers</span>
+    <div class="spacer"></div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme (t)">
+      <span id="themeLabel">Auto</span>
+      <span class="track"><span class="knob"></span></span>
+    </button>
+  </div>
+</div>
+
+<div class="page">
+  <aside class="sidebar">
+    <p class="label">On this page</p>
+    <nav id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>Dawnpatrol, Legwork &amp; Bindery</h1>
+      <p class="lede">Three working apps, taken from “does what it says” to “does what it promises.” Each one is already strong. Each breaks its own stated principle in exactly one place, and each drops the human judgment it collected before that judgment reaches the client. Those two patterns organise everything below.</p>
+      <div class="facts">
+        <div class="fact"><div class="k">Repos</div><div class="v">Dawnpatrol · Legwork · Bindery</div></div>
+        <div class="fact"><div class="k">Stack</div><div class="v">Python 3.12 · stdlib only</div></div>
+        <div class="fact"><div class="k">Tests</div><div class="v">67 · 109 · 247, all green</div></div>
+        <div class="fact"><div class="k">In flight</div><div class="v">6 PRs, all mergeable</div></div>
+        <div class="fact"><div class="k">Backlog</div><div class="v">9 issues filed</div></div>
+        <div class="fact"><div class="k">Canonical</div><div class="v">plans/2026-09-08-three-app-roadmap.md</div></div>
+      </div>
+    </div>
+
+    <!-- 1 · The three apps -->
+    <section class="card" id="apps">
+      <h2><span class="num">01</span> The three apps</h2>
+      <p class="muted">They are not a suite. They are three points on one engagement arc for a solo advisory practice — know something worth saying, prove it in the room, then deliver something the client keeps.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    FEEDS["27 AI feeds"] --&gt; DP["Dawnpatrol<br/>before the day starts"]
+    DP --&gt; BRIEF[("Ranked report<br/>+ kept stories")]
+    BRIEF --&gt; ADV["The advisor"]
+
+    ADV --&gt; LW["Legwork<br/>in the room"]
+    OWN["Business owner"] --&gt; LW
+    LW --&gt; SHEET[("Workflow sheet<br/>+ one-pager")]
+
+    ADV --&gt; BD["Bindery<br/>the delivery"]
+    FOLDER["Client document folder"] --&gt; BD
+    BD --&gt; GAP[("Search + gap report")]
+
+    SHEET --&gt; OWN
+    GAP --&gt; OWN
+
+    class ADV,OWN actor
+    class DP,LW,BD service
+    class BRIEF,SHEET,GAP data
+    class FEEDS,FOLDER external
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>Dawnpatrol — intel</h4><ul><li>27 feeds swept before the day starts</li><li>One story, not six copies of it</li><li>Ranked for owner-led SMBs, arithmetic shown</li></ul></div>
+        <div class="tile"><h4>Legwork — the sale</h4><ul><li>A workflow the owner recognises in ten seconds</li><li>Real extraction on their own pasted email</li><li>Never a single figure, never an invented rate</li></ul></div>
+        <div class="tile"><h4>Bindery — delivery</h4><ul><li>Sub-second search over their own folder</li><li>Duplicates, stale, orphans, what is missing</li><li>Read-only, verified by test</li></ul></div>
+        <div class="tile"><h4>Shared by all three</h4><ul><li>Standard library only, no dependencies</li><li>Local-first, no account, no telemetry</li><li>One vendored <code>_shared/</code> kit</li></ul></div>
+      </div>
+    </section>
+
+    <!-- 2 · Theme A -->
+    <section class="card" id="theme-a">
+      <h2><span class="num">02</span> Theme A — honour “nothing is hidden”</h2>
+      <p class="muted">All three apps state this principle in their README. All three break it in exactly one place. This is the cheapest, highest-credibility work available.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>App</th><th>Where it breaks</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Dawnpatrol</strong></td><td><code>build()</code> returned <code>merged[:40]</code>; the UI could not reach the rest</td><td><span class="badge ok">fixed · PR 7</span></td></tr>
+            <tr><td><strong>Bindery</strong></td><td>Fixed category order, then <code>return out[:5]</code> — <code>analyze.py:724</code></td><td><span class="badge info">phase 1</span></td></tr>
+            <tr><td><strong>Legwork</strong></td><td>Chase demo drops comma-less lines, despite its own on-screen hint</td><td><span class="badge info">filed · #5</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Why Bindery’s is the worst</strong>
+        The headline block is the part an advisor reads aloud in the room. A catastrophic concentration finding can be pushed off that list by nothing more than its position in an if/elif chain. Replace the fixed order and the cap with a severity sort that shows its own arithmetic — hours of work, no I/O, no schema change. It is also a prerequisite for every later finding type: add those first and each one needs its own bespoke priority rule.
+      </div>
+    </section>
+
+    <!-- 3 · Theme B -->
+    <section class="card" id="theme-b">
+      <h2><span class="num">03</span> Theme B — the artifact is weaker than the session</h2>
+      <p class="muted">Each app collects human judgment, then loses it at the boundary where something leaves the machine. The same gap wearing three costumes.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    subgraph CAP["What the session captures"]
+        A1["Dawnpatrol<br/>kept stories + the advisor's note"]
+        A2["Legwork<br/>the live demo on their own email"]
+        A3["Bindery<br/>this scan's findings"]
+    end
+    subgraph OUT["What the client is left holding"]
+        B1["reports/*.md<br/>written by the scheduled task"]
+        B2["the one-pager"]
+        B3["the gap report"]
+    end
+    A1 -. "never referenced" .-&gt; B1
+    A2 -. "never referenced" .-&gt; B2
+    A3 -. "no memory of last visit" .-&gt; B3
+
+    class A1,A2,A3 service
+    class B1,B2,B3 deny
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>Dawnpatrol</h4><p class="muted" style="margin:0"><code>POST /api/kept</code> captures the advisor’s own curation, with a note framed as “what does this mean for a 20-person company”. <code>render_markdown</code> never references that collection.</p></div>
+        <div class="tile"><h4>Legwork</h4><p class="muted" style="margin:0">The demo is the persuasive core — the owner watching their own email get parsed, misses shown honestly. The exports never reference it, so the packet could have come from a slide deck.</p></div>
+        <div class="tile"><h4>Bindery</h4><p class="muted" style="margin:0">Nothing can tell a returning client “you had 40 duplicates in March, you have 6 now” — which is the natural shape of a second invoice.</p></div>
+      </div>
+    </section>
+
+    <!-- 4 · Sequencing -->
+    <section class="card" id="sequencing">
+      <h2><span class="num">04</span> Sequencing &amp; what blocks what</h2>
+      <p class="muted">Phase 0 gates everything. Two items are hard prerequisites, and one is a decision only you can make.</p>
+      <div class="diagram">
+        <div class="tools"><button data-act="copy">copy source</button><button data-act="open">open svg</button></div>
+        <pre class="mermaid">
+flowchart LR
+    P0["Phase 0<br/>land the foundation"] --&gt; P1["Phase 1<br/>cheap, high-credibility"]
+    P0 --&gt; P2["Phase 2<br/>close Theme B"]
+    P1 --&gt; P3["Phase 3<br/>ambitious"]
+    P2 --&gt; P3
+
+    LW3{"Legwork #3<br/>sheet saves only<br/>the first edit"} --&gt; LWALL["Every Legwork item"]
+    DP9["Dawnpatrol #9<br/>canonical-URL merge"] --&gt; DP11["11 - cross-day threading"]
+    BD3{"Bindery #3<br/>build it, or drop<br/>the README claim?"} --&gt; BD10["10 - contradiction detection"]
+
+    class P0,P1,P2,P3 service
+    class LW3,BD3 decision
+    class LWALL,DP11,BD10 deny
+    class DP9 data
+        </pre>
+      </div>
+      <div class="legend" data-legend></div>
+      <div class="callout danger">
+        <strong>Legwork #3 blocks every Legwork item</strong>
+        Only the first field edit per sheet is saved; every later edit is silently discarded, because <code>save()</code> swaps the object graph out from under handlers bound at the last paint. Both the stored document and the live numbers freeze. Every Legwork feature in this roadmap assumes a sheet that saves.
+      </div>
+      <p><strong>Phase 0 in full:</strong> merge the six open PRs — all report <code>MERGEABLE</code>, and #5 and #7 were verified to auto-merge cleanly despite touching the same two files; clear the correctness backlog (Dawnpatrol&nbsp;#9–#12, Legwork&nbsp;#4–#6, Bindery&nbsp;#4); and decide Bindery&nbsp;#3.</p>
+    </section>
+
+    <!-- 5 · Phase 1 -->
+    <section class="card" id="phase-1">
+      <h2><span class="num">05</span> Phase 1 — cheap and high-credibility</h2>
+      <p class="muted">Days, not weeks. Every item here is visible to a client.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>App</th><th>Item</th><th>Size</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Bindery</td><td>Severity-ranked, uncapped headline list <span class="muted">— Theme A</span></td><td><span class="badge ok">S</span></td></tr>
+            <tr><td>2</td><td>Dawnpatrol</td><td>Source health trend — flag a feed failing N days running</td><td><span class="badge warn">M</span></td></tr>
+            <tr><td>3</td><td>Dawnpatrol</td><td>Window-days control on the Collect button</td><td><span class="badge ok">S</span></td></tr>
+            <tr><td>4</td><td>Legwork</td><td>Per-role hand-time rollup, grouped by the <code>who</code> already collected</td><td><span class="badge ok">S</span></td></tr>
+            <tr><td>5</td><td>Bindery</td><td>Per-client near-duplicate threshold and score weights</td><td><span class="badge ok">S</span></td></tr>
+            <tr><td>6</td><td>Bindery</td><td>Unreadable files grouped by folder, not only by reason</td><td><span class="badge ok">S</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:1rem">
+        <div class="tile"><h4>On 2</h4><p class="muted" style="margin:0">The source list was verified once, in August. Two feeds have degraded since — VentureBeat a persistent <code>429</code>, ZDNet a <code>404</code> — and nothing surfaced that drift. “A broken source is on the screen, not in a log” holds one morning at a time, and is defeated in aggregate.</p></div>
+        <div class="tile"><h4>On 3</h4><p class="muted" style="margin:0">The backend already accepts <code>windowDays</code> 1–14. The UI posts an empty body and can never ask for it. Pure wiring, for the “I was on-site for four days” case.</p></div>
+        <div class="tile"><h4>On 4</h4><p class="muted" style="margin:0">The sheet already collects <code>who</code> per step but applies one blended rate to all of them. An owner who runs payroll will notice a $22/hr office hour priced identically to a $95/hr tech hour.</p></div>
+        <div class="tile"><h4>On 6</h4><p class="muted" style="margin:0">“All 340 unreadable files live in one pre-2015 archive folder” is a remediation plan. “Here are 12 reasons files fail” is not.</p></div>
+      </div>
+    </section>
+
+    <!-- 6 · Phase 2 -->
+    <section class="card" id="phase-2">
+      <h2><span class="num">06</span> Phase 2 — close Theme B</h2>
+      <p class="muted">Make each artifact carry the judgment its session produced.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>App</th><th>Item</th><th>Size</th></tr></thead>
+          <tbody>
+            <tr><td>7</td><td>Legwork</td><td>Pin a live-demo result into the exported one-pager</td><td><span class="badge warn">M</span></td></tr>
+            <tr><td>8</td><td>Dawnpatrol</td><td>Kept-list call-prep export, optional flat client tag</td><td><span class="badge warn">M</span></td></tr>
+            <tr><td>9</td><td>Bindery</td><td>Re-engagement trend — snapshot each scan, show deltas</td><td><span class="badge warn">M</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">
+        <strong>Item 7 carries a privacy risk that must be designed in, not bolted on</strong>
+        Pasted customer text contains real names and addresses. Pinning a demo result into an exported file needs an explicit, visible “include this in the export?” confirmation. Silently baking a customer’s details into a leave-behind would be a serious misstep.
+      </div>
+      <p class="muted"><strong>Item 9 needs a retention cap</strong>, so a five-year engagement does not grow an unbounded database — and must show its arithmetic rather than becoming “the score went up” theatre.</p>
+    </section>
+
+    <!-- 7 · Phase 3 -->
+    <section class="card" id="phase-3">
+      <h2><span class="num">07</span> Phase 3 — ambitious</h2>
+
+      <h3>10 · Bindery — contradiction detection <span class="badge warn">decision pending</span></h3>
+      <p>General semantic contradiction detection is not achievable at acceptable false-positive rates without an NLP model, which the constraints forbid. The buildable version is a <strong>closed set of hand-authored fact extractors</strong> — labour rate, payment terms, warranty length, insurance limit, price-list effective date — each a pattern requiring a fixed anchor phrase adjacent to the value. Two values for the same field key, in different documents, differing beyond a tolerance, become a “same fact, different files, different values” finding shown with both snippets. The advisor confirms; the tool never declares.</p>
+      <div class="callout">
+        <strong>False-positive control is architectural, not statistical</strong>
+        It only ever compares numbers adjacent to the <em>same</em> anchor phrase from a short curated list — never any two numbers near any two phrases, which is what would cry wolf on every page count and invoice total in the folder. The honest cost is recall, and the report must say so rather than let “no contradictions found” read as “verified consistent.” If it cannot reach near-zero false positives, the right outcome is to drop the README claim and ship a smaller “known business facts, side by side” table with no contradiction language at all. That is a good result, not a failure.
+      </div>
+
+      <h3>11 · Dawnpatrol — cross-day story threading</h3>
+      <p class="muted">Match today’s merged stories against yesterday’s stored report and annotate “continuing — first seen {date}” instead of presenting a third-morning story as brand new. Must land after #9, which fixes the merge path it depends on, and needs its own decay term: a story resurfacing for the third day is not automatically more important, and without that the ranking starts rewarding staleness.</p>
+
+      <h3>12 · Dawnpatrol — band-diversity-aware corroboration</h3>
+      <p class="muted">A lab post plus a practitioner writeup plus a wire story is stronger evidence than three outlets syndicating one press release. <code>Story.also</code> currently stores only source and url — no band — so the corroboration bonus is blind to exactly the distinction the band system exists to draw.</p>
+
+      <h3>13 · Legwork — a real “who goes where” demo</h3>
+      <p class="muted">The one handling answer with no runnable demo. A deterministic greedy first-draft assignment, with the reason written beside each one, framed as a draft the owner edits. The picker is already honest here — that entry’s blurb reads “Not built yet. Named here so the sheet doesn’t imply it exists” — so this is an opportunity, not a repair. Needs explicit “assumed, not told” flagging, or it starts to look like judgement was quietly automated.</p>
+
+      <h3>14 · Legwork — second-visit delta report</h3>
+      <p class="muted">Re-enter measured numbers after a build; compare the original range against observed reality, still as ranges. A pure diff of two analysis snapshots. The only feature here that operates <em>after</em> the sale, which is why it matters for a repeat-engagement practice.</p>
+
+      <h3>15 · Bindery — cross-folder comparison</h3>
+      <p class="muted">Point at the official shared drive and someone’s personal export; report what exists in both with different content. The index already partitions by client and the near-duplicate algorithm is already agnostic to it. For an SMB with no IT department this is often <em>the</em> finding that explains why the documentation is unreliable. Keep it narrowly framed, or it scope-creeps into a general folder-diff product.</p>
+
+      <h3>16 · Bindery — headless batch mode</h3>
+      <p class="muted">Scan and export from the command line without the server. Twelve active clients currently means opening the GUI twelve times. Must share the same functions as the GUI path, not reimplement them.</p>
+    </section>
+
+    <!-- 8 · Guardrails -->
+    <section class="card" id="guardrails">
+      <h2><span class="num">08</span> What we will not build</h2>
+      <p class="muted">Recorded so the same tempting ideas do not get re-proposed each quarter. Each of these is popular, plausible, and would damage the thesis of the app it lands in.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Not this</th><th>Because</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A “top 5 only” mode</strong><br><span class="muted">Dawnpatrol</span></td><td>The most requestable feature, and the one that guts the founding refusal. You cannot audit an absence.</td></tr>
+            <tr><td><strong>Self-tuning ranking weights</strong><br><span class="muted">Dawnpatrol</span></td><td>If the keyword table can change without a human editing it, a Tuesday score is no longer traceable. A suggestion the advisor commits by hand is fine; an automatic reweight is not.</td></tr>
+            <tr><td><strong>Industry benchmarks</strong><br><span class="muted">Legwork</span></td><td>The one-pager already prints “These are your numbers, not an industry average.” There is no dataset behind a solo practice, and a stranger’s numbers on this owner’s page is what the trust model exists to prevent.</td></tr>
+            <tr><td><strong>Auto-suggested handling ticks</strong><br><span class="muted">Legwork</span></td><td>The code already refuses to guess these on import — “guessing it would put ticks on a client’s sheet that the client never made.” They are worth something only because the owner said them.</td></tr>
+            <tr><td><strong>A suggested hourly rate</strong><br><span class="muted">Legwork</span></td><td>Once one dollar figure on the page is soft, none of the others can be trusted.</td></tr>
+            <tr><td><strong>LLM summarisation</strong><br><span class="muted">Bindery</span></td><td>Breaks stdlib-only and no-network, and undoes the actual differentiator: inspectable, boring determinism the advisor can point at.</td></tr>
+            <tr><td><strong>Any write path</strong><br><span class="muted">Bindery</span></td><td>Turns “this app cannot write” into “this app can write, but only when a flag is off” — a categorically weaker promise to make a client.</td></tr>
+            <tr><td><strong>A bundled OCR engine</strong><br><span class="muted">Bindery</span></td><td>No standard-library OCR exists. Page-count triage captures most of the value without crossing the line.</td></tr>
+            <tr><td><strong>Hosted or synced anything</strong><br><span class="muted">all three</span></td><td>Local-first is the trust model, not a deployment detail.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 9 · Open decisions -->
+    <section class="card" id="decisions">
+      <h2><span class="num">09</span> Decisions waiting on you</h2>
+      <div class="grid2">
+        <div class="tile"><h4>1 · Bindery #3</h4><p class="muted" style="margin:0">Build contradiction detection to the design in section 07, or drop the README claim? Blocks Phase 3 item 10.</p></div>
+        <div class="tile"><h4>2 · Dawnpatrol dead feeds</h4><p class="muted" style="margin:0">VentureBeat and ZDNet have degraded since verification. Move them to the recorded-failures list, per the file’s existing convention, or keep retrying?</p></div>
+        <div class="tile"><h4>3 · Hardcoded test counts</h4><p class="muted" style="margin:0">All three READMEs carry one, and it drifted three different ways across the open PRs. Does that number belong in a README at all?</p></div>
+        <div class="tile"><h4>4 · GitHub Project</h4><p class="muted" style="margin:0">Needs <code>read:project</code> on the token. Until then this sequences against per-repo issues only.</p></div>
+      </div>
+      <div class="callout">
+        <strong>Constraints that govern every item above</strong>
+        Python standard library only, no dependencies ever · local-first, no account or telemetry · nothing is filtered away · every figure shows its arithmetic · Bindery stays read-only on client documents · Legwork never invents a rate, never collapses a range to a point, and never guesses a tick the owner did not make.
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  Three-app roadmap · built from <code>app-doc-template.html</code> · canonical text in <code>docs/superpowers/plans/2026-09-08-three-app-roadmap.md</code> · diagrams by Mermaid · press <kbd>t</kbd> to toggle theme
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  /* ───────── Diagram palettes (one per theme) ───────── */
+  const PALETTES = {
+    light: {
+      actor:    "fill:#fff3c4,stroke:#b7791f,stroke-width:2px,color:#5c3d00",
+      service:  "fill:#dbe4ff,stroke:#4f6df5,stroke-width:2px,color:#1b2a6b",
+      data:     "fill:#e6e0ff,stroke:#7c5cff,stroke-width:2px,color:#2d1e73",
+      external: "fill:#e9ecf3,stroke:#7a8199,stroke-width:2px,stroke-dasharray:5 3,color:#2c3140",
+      decision: "fill:#ffe9a8,stroke:#d98c07,stroke-width:2px,color:#4d3300",
+      allow:    "fill:#d3f5e1,stroke:#1f9d55,stroke-width:2px,color:#0d4a28",
+      deny:     "fill:#ffd9d6,stroke:#d7423b,stroke-width:2px,color:#6b1612",
+    },
+    dark: {
+      actor:    "fill:#4a3c12,stroke:#f2b544,stroke-width:2px,color:#ffe9a8",
+      service:  "fill:#23306b,stroke:#7b93ff,stroke-width:2px,color:#dbe4ff",
+      data:     "fill:#2d2461,stroke:#a48cff,stroke-width:2px,color:#e6e0ff",
+      external: "fill:#262b3a,stroke:#9aa0b4,stroke-width:2px,stroke-dasharray:5 3,color:#e8eaf2",
+      decision: "fill:#5a4200,stroke:#f2b544,stroke-width:2px,color:#fff1c2",
+      allow:    "fill:#0f3d24,stroke:#3ccf7a,stroke-width:2px,color:#d3f5e1",
+      deny:     "fill:#4d1714,stroke:#ff6b63,stroke-width:2px,color:#ffd9d6",
+    },
+  };
+  const LEGEND = [["actor","people / clients"],["service","our code"],["data","storage / queues"],["external","third-party"],["decision","check / branch"],["allow","allowed / success"],["deny","denied / failure"]];
+
+  const root = document.documentElement;
+  const mql = matchMedia("(prefers-color-scheme: dark)");
+  const effective = () => root.dataset.theme === "auto" ? (mql.matches ? "dark" : "light") : root.dataset.theme;
+
+  /* ───────── Theme toggle: auto → light → dark → auto ───────── */
+  try { const saved = localStorage.getItem("doc-theme"); if (saved) root.dataset.theme = saved; } catch {}
+  const label = document.getElementById("themeLabel");
+  const paint = () => { label.textContent = root.dataset.theme === "auto" ? "Auto" : root.dataset.theme === "dark" ? "Dark" : "Light"; };
+  const cycle = () => {
+    root.dataset.theme = { auto: "light", light: "dark", dark: "auto" }[root.dataset.theme];
+    try { localStorage.setItem("doc-theme", root.dataset.theme); } catch {}
+    paint(); renderAll();
+  };
+  document.getElementById("themeToggle").addEventListener("click", cycle);
+  addEventListener("keydown", e => { if (e.key === "t" && !/input|textarea/i.test(e.target.tagName)) cycle(); });
+  mql.addEventListener("change", () => { if (root.dataset.theme === "auto") renderAll(); });
+  paint();
+
+  /* ───────── Mermaid rendering (re-rendered per theme) ───────── */
+  const blocks = [...document.querySelectorAll("pre.mermaid")].map((pre, i) => {
+    const src = [...pre.childNodes].map(n => n.nodeType === 3 ? n.data : n.tagName === "BR" ? "<br/>" : n.textContent).join("").trim();
+    const holder = document.createElement("div");
+    holder.className = "mermaid-out";
+    pre.replaceWith(holder);
+    return { id: `mmd-${i}`, src, holder, kind: src.split(/\s/)[0] };
+  });
+
+  function classDefs(mode) {
+    return Object.entries(PALETTES[mode]).map(([k, v]) => `classDef ${k} ${v}`).join("\n");
+  }
+
+  async function renderAll() {
+    const mode = effective();
+    const cs = getComputedStyle(root);
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "base",
+      securityLevel: "loose",
+      fontFamily: cs.getPropertyValue("--font"),
+      flowchart: { htmlLabels: true, curve: "basis", padding: 12 },
+      sequence: { actorMargin: 40, mirrorActors: false },
+      themeVariables: {
+        background: "transparent",
+        primaryColor: cs.getPropertyValue("--bg-elev").trim(),
+        primaryTextColor: cs.getPropertyValue("--fg").trim(),
+        primaryBorderColor: cs.getPropertyValue("--line").trim(),
+        lineColor: cs.getPropertyValue("--fg-muted").trim(),
+        textColor: cs.getPropertyValue("--fg").trim(),
+        secondaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        tertiaryColor: cs.getPropertyValue("--bg-sunk").trim(),
+        clusterBkg: cs.getPropertyValue("--bg-elev").trim(),
+        clusterBorder: cs.getPropertyValue("--line").trim(),
+        edgeLabelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        actorBkg: cs.getPropertyValue("--bg-elev").trim(),
+        actorBorder: cs.getPropertyValue("--accent").trim(),
+        actorTextColor: cs.getPropertyValue("--fg").trim(),
+        signalColor: cs.getPropertyValue("--fg").trim(),
+        signalTextColor: cs.getPropertyValue("--fg").trim(),
+        noteBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        noteTextColor: cs.getPropertyValue("--fg").trim(),
+        attributeBackgroundColorOdd: cs.getPropertyValue("--bg-elev").trim(),
+        attributeBackgroundColorEven: cs.getPropertyValue("--bg-sunk").trim(),
+        fontSize: "14px",
+        /* shared node/label defaults (ER, state, class diagrams read these) */
+        darkMode: mode === "dark",
+        mainBkg: cs.getPropertyValue("--bg-elev").trim(),
+        nodeBorder: cs.getPropertyValue("--accent").trim(),
+        nodeTextColor: cs.getPropertyValue("--fg").trim(),
+        labelColor: cs.getPropertyValue("--fg").trim(),
+        labelTextColor: cs.getPropertyValue("--fg").trim(),
+        labelBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        titleColor: cs.getPropertyValue("--fg").trim(),
+        /* state diagrams */
+        stateBkg: cs.getPropertyValue("--bg-elev").trim(),
+        stateLabelColor: cs.getPropertyValue("--fg").trim(),
+        altBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeBackground: cs.getPropertyValue("--bg-sunk").trim(),
+        compositeTitleBackground: cs.getPropertyValue("--bg-elev").trim(),
+        compositeBorder: cs.getPropertyValue("--line").trim(),
+        transitionColor: cs.getPropertyValue("--fg-muted").trim(),
+        transitionLabelColor: cs.getPropertyValue("--fg").trim(),
+        labelBoxBkgColor: cs.getPropertyValue("--bg-sunk").trim(),
+        labelBoxBorderColor: cs.getPropertyValue("--line").trim(),
+        specialStateColor: cs.getPropertyValue("--accent").trim(),
+        innerEndBackground: cs.getPropertyValue("--accent").trim(),
+        /* ER diagrams */
+        rowOdd: cs.getPropertyValue("--bg-elev").trim(),
+        rowEven: cs.getPropertyValue("--bg-sunk").trim(),
+      },
+    });
+    for (const b of blocks) {
+      const isFlow = /^(flowchart|graph)\b/.test(b.kind);
+      const code = isFlow ? `${b.src}\n${classDefs(mode)}` : b.src;
+      try {
+        const { svg } = await mermaid.render(`${b.id}-${mode}-${Date.now()}`, code);
+        b.holder.innerHTML = svg;
+        if (b.holder.closest(".diagram")?.classList.contains("scroll")) {
+          const el = b.holder.querySelector("svg"), w = el?.viewBox?.baseVal?.width;
+          if (el && w) { el.style.maxWidth = "none"; el.style.width = Math.ceil(w) + "px"; }
+        }
+      } catch (err) {
+        b.holder.innerHTML = `<pre style="color:var(--danger);white-space:pre-wrap;font-family:var(--mono);font-size:.8rem">Mermaid error in diagram ${b.id}:\n${err.message || err}</pre>`;
+      }
+    }
+    paintLegends(mode);
+  }
+
+  function paintLegends(mode) {
+    document.querySelectorAll("[data-legend]").forEach(el => {
+      el.innerHTML = LEGEND.map(([k, t]) => {
+        const fill = PALETTES[mode][k].match(/fill:([^,]+)/)[1];
+        const stroke = PALETTES[mode][k].match(/stroke:([^,]+)/)[1];
+        return `<span><i style="background:${fill};border-color:${stroke}"></i>${t}</span>`;
+      }).join("");
+    });
+  }
+
+  /* ───────── Diagram tools: copy source / open svg ───────── */
+  document.querySelectorAll(".diagram").forEach((d, i) => {
+    d.querySelectorAll(".tools button").forEach(btn => btn.addEventListener("click", () => {
+      const b = blocks[i];
+      if (btn.dataset.act === "copy") {
+        navigator.clipboard?.writeText(b.src).then(() => { btn.textContent = "copied"; setTimeout(() => btn.textContent = "copy source", 1200); });
+      } else {
+        const svg = b.holder.querySelector("svg"); if (!svg) return;
+        // outerHTML is HTML serialisation (<br>, unclosed tags) — invalid as standalone XML.
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        clone.style.background = getComputedStyle(root).getPropertyValue("--bg-sunk").trim();
+        clone.style.maxWidth = "none";
+        const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+        open(URL.createObjectURL(blob), "_blank");
+      }
+    }));
+  });
+
+  /* ───────── Sidebar TOC + scroll spy ───────── */
+  const toc = document.getElementById("toc");
+  const sections = [...document.querySelectorAll("main section[id]")];
+  toc.innerHTML = sections.map(s => `<a href="#${s.id}">${s.querySelector("h2")?.textContent.replace(/^\d+\s*/, "").trim() ?? s.id}</a>`).join("");
+  const links = [...toc.querySelectorAll("a")];
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) links.forEach(l => l.classList.toggle("active", l.hash === `#${e.target.id}`)); });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  sections.forEach(s => spy.observe(s));
+
+  renderAll();
+</script>
+</body>
+</html>
