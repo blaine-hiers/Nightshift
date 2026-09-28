@@ -32,6 +32,15 @@ cd .worktrees/issue-42 && npm ci      # or the repo's own bootstrap
 
 Worktrees share one object store, so this costs ~nothing in git terms — the base clone's `.git` is a few MB. Dependencies (`node_modules`) are per-worktree and are the real disk cost; that's unavoidable and is another reason teardown matters.
 
+**Never read a fact about a repo from the base clone's working tree without fetching first.** The base clone sits at whatever `main` was when it was last pulled, which can be many merged PRs ago. It is there to be branched from, not to be measured. Anything that ends up in an issue body — a line count, a file inventory, "the README has no diagram" — must come from `origin/main`:
+
+```bash
+git -C workspace/<repo> fetch origin
+git -C workspace/<repo> show origin/main:README.md | wc -l
+```
+
+The 2026-09-09 drain filed seven README tickets whose bodies were written from unfetched base clones. Two carried wrong numbers into the prompt — Redline described as 359 lines with 4 screenshots when `origin/main` had 161 and 8, and Gauntlet as 143 lines when it had 311. The implementers worked from the real files and flagged the discrepancy, so nothing shipped wrong, but every such error spends a subagent's attention reconciling the ticket against reality.
+
 Set `gc.auto=0` on the base clone and fetch **once from the main thread** before dispatching a batch. Several agents fetching into one shared object store concurrently is the one way this layout bites.
 
 ## Teardown
