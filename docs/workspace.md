@@ -30,6 +30,8 @@ git worktree add .worktrees/issue-42 -b dev/42-<kebab-slug> origin/main
 cd .worktrees/issue-42 && npm ci      # or the repo's own bootstrap
 ```
 
+**Python repos bootstrap their own venv inside the worktree** (`py -3.X -m venv .venv`, then `.venv\Scripts\python -m pip install -e ".[dev]"`). An editable install points at the worktree it was made in, so never borrow the base clone's venv. Pick the interpreter deliberately and say which one in the implementer prompt: a worktree built on 3.11 and one built on 3.12 disagreed about three tests on 2026-09-28 (lmstudio-automation#108), which read as "pre-existing failures" until the versions were compared.
+
 Worktrees share one object store, so this costs ~nothing in git terms — the base clone's `.git` is a few MB. Dependencies (`node_modules`) are per-worktree and are the real disk cost; that's unavoidable and is another reason teardown matters.
 
 **Never read a fact about a repo from the base clone's working tree without fetching first.** The base clone sits at whatever `main` was when it was last pulled, which can be many merged PRs ago. It is there to be branched from, not to be measured. Anything that ends up in an issue body — a line count, a file inventory, "the README has no diagram" — must come from `origin/main`:
@@ -38,6 +40,8 @@ Worktrees share one object store, so this costs ~nothing in git terms — the ba
 git -C workspace/<repo> fetch origin
 git -C workspace/<repo> show origin/main:README.md | wc -l
 ```
+
+In Git Bash on Windows, set `MSYS_NO_PATHCONV=1` for any `git show <rev>:<path>`: MSYS rewrites the colon-separated argument into a Windows path, and git fails with "ambiguous argument" (or, redirected to a file, silently writes nothing).
 
 The 2026-09-09 drain filed seven README tickets whose bodies were written from unfetched base clones. Two carried wrong numbers into the prompt — Redline described as 359 lines with 4 screenshots when `origin/main` had 161 and 8, and Gauntlet as 143 lines when it had 311. The implementers worked from the real files and flagged the discrepancy, so nothing shipped wrong, but every such error spends a subagent's attention reconciling the ticket against reality.
 
