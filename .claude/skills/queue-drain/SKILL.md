@@ -100,8 +100,9 @@ bash .claude/skills/queue-drain/scripts/ensure-labels.sh blaine-hiers/<repo>
 ```
 
 `gh` refuses `--add-label` for a label that does not exist, so a repo that
-never got the taxonomy fails the *first status move of stage 4*, mid-run,
-after its worktree is already built. The script is idempotent and leaves
+never got the taxonomy fails its *first label write*, mid-run: a stage-2
+triage off-ramp if one of its tickets needs one, otherwise the first status
+move of stage 4, after its worktree is already built. The script is idempotent and leaves
 existing labels untouched, including deliberate colour divergence; `--check`
 reports without creating. The 2026-09-09 drain found three of seven repos
 (Onramp, Redline, Nightshift) had no `status/…` or `tier/…` labels at all.
