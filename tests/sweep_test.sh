@@ -128,4 +128,18 @@ git worktree add -q .worktrees/issue-5 -b test/issue-5
 OUT="$(bash "$SWEEP" "$TMP/base")"
 assert_contains "$OUT" "unpushed" "ahead-only worktree (has unpushed commits) is BLOCKED unpushed"
 
+# T13: the remote moved on but this run's fetch fails => BLOCKED fetch-failed,
+# never "unpushed" (misleading) and never REMOVABLE (unverified).
+cd "$TMP/base"
+git worktree add -q .worktrees/issue-6 -b test/issue-6
+( cd .worktrees/issue-6 && git config user.email t@t && git config user.name t   && echo commit1 > m.txt && git add m.txt && git commit -qm "local commit" && git push -qu origin test/issue-6 )
+cd "$TMP/origin.git"
+PARENT=$(git rev-parse refs/heads/test/issue-6)
+NEWCOMM=$(git commit-tree -p "$PARENT" -m "remote-only commit" "$(git rev-parse "$PARENT^{tree}")")
+git update-ref refs/heads/test/issue-6 "$NEWCOMM"
+# An extra fetch refspec for a ref that doesn't exist makes every fetch fail,
+# while ls-remote (which ignores refspecs) still sees the new remote commit.
+OUT="$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.fetch        GIT_CONFIG_VALUE_0=+refs/heads/no-such-branch:refs/remotes/origin/no-such-branch        bash "$SWEEP" "$TMP/base" --skip-pr-check | grep issue-6)"
+assert_contains "$OUT" "fetch-failed" "remote moved on but fetch failed is BLOCKED fetch-failed"
+
 echo; if [ "$FAILS" -eq 0 ]; then echo "ALL PASS"; else echo "$FAILS FAILURES"; exit 1; fi
