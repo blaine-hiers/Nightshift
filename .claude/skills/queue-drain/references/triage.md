@@ -93,7 +93,7 @@ stays reviewable across runs instead of being re-litigated by every drain.
 Derive a tier only when the label is absent, using the table below
 (Nightshift CLAUDE.md, verbatim — default DOWN, not up), then write it
 back. needs-plan tickets get a tier too — plan-gate.md's planning-subagent
-dispatch rule reads it to pick sonnet vs opus. needs-info, blocked,
+dispatch rule reads it to pick `tier-sonnet` vs `tier-opus`. needs-info, blocked,
 decompose, and out-of-scope tickets get "—" (no tier, no label write):
 
 | Tier | Use for |

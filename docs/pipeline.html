@@ -393,7 +393,7 @@ flowchart TD
     Ver -->|yes| Scan{"Secret scan of the diff<br/>dotfiles · config · credential-shaped strings"}
     Scan -->|suspicious| BL2["Do not push<br/>→ Blocked with the finding"]
     Scan -->|clean| Push["Claude pushes from the worktree<br/>gh pr create --head branch · ready for review<br/>body: 'Implementation by OpenAI Codex (model/effort, session uuid);<br/>coordinated and reviewed by Claude.'"]
-    Push --> Rev["Fresh reviewer subagent<br/>sonnet · opus if Security<br/>posts gh pr review"]
+    Push --> Rev["Fresh reviewer subagent<br/>tier-sonnet · tier-opus if Security<br/>posts gh pr review"]
     Rev --> Verdict{"changes requested?"}
     Verdict -->|no| Close["gh issue comment: root cause · PR · verdict ·<br/>session UUID · model/effort<br/>→ status/in-review"]
     Verdict -->|"yes — first time"| Fix["codex exec … resume &lt;uuid&gt;<br/>never --last · same model/effort/sandbox/worktree<br/>prompt = findings, file:line"]
