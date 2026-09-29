@@ -1,9 +1,9 @@
 # Plan gate (queue-drain stage 3)
 
 ## Drafting
-Dispatch ONE planning subagent per needs-plan or decompose issue (sonnet
-unless the issue's tier — its `tier/…` label, as resolved in stage 2 — is
-`tier/opus` or `tier/fable`, which both plan at opus). Its prompt: the issue
+Dispatch ONE planning subagent per needs-plan or decompose issue
+(`tier-sonnet` unless the issue's tier — its `tier/…` label, as resolved in
+stage 2 — is `tier/opus` or `tier/fable`, which both plan on `tier-opus`). Its prompt: the issue
 verbatim + "Read the target repo at <path-to-base-clone>. Produce ONLY the
 compact plan below — half a page. Do not write code."
 

@@ -124,9 +124,10 @@ gh issue edit 24 -R blaine-hiers/Redline \
 ```
 
 Label names are lowercase and are used verbatim — `tier/sonnet` becomes an
-`Agent` `model:` string by stripping the prefix (`model: "sonnet"`), with
-no case translation anywhere. `tier/codex` is a valid tier; it maps to the
-codex-dispatch skill, not to an `Agent` `model:` string.
+`Agent` `subagent_type:` string by replacing the `/` with `-`
+(`subagent_type: "tier-sonnet"`), with no case translation anywhere.
+`tier/codex` is a valid tier; it maps to the codex-dispatch skill, not to
+a `tier-*` agent.
 
 **A label that doesn't exist yet fails the edit** rather than being created
 silently. Create it once per repo, then apply it:

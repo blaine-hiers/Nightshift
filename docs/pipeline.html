@@ -277,7 +277,7 @@ flowchart TB
           <thead><tr><th>Component</th><th>Lives in</th><th>Responsibility</th><th>Talks to</th></tr></thead>
           <tbody>
             <tr><td><strong>Coordinator</strong></td><td>main Claude session</td><td>Reads issues, creates worktrees, dispatches subagents, moves status, comments, tears down, writes the run report</td><td>gh, git, subagents</td></tr>
-            <tr><td><strong>Implementer subagent</strong></td><td><code>Agent</code> with <code>model:</code> from <code>tier/</code></td><td>Reproduce → fix → run the target repo's tests in its worktree; report back</td><td>its worktree only</td></tr>
+            <tr><td><strong>Implementer subagent</strong></td><td><code>Agent</code> with <code>subagent_type: tier-*</code> from <code>tier/</code></td><td>Reproduce → fix → run the target repo's tests in its worktree; report back</td><td>its worktree only</td></tr>
             <tr><td><strong>Codex implementer</strong></td><td><code>codex exec</code> in the worktree, <code>tier/codex</code> only</td><td>Implement → run the repo's tests → commit to the branch. Sandboxed <code>workspace-write</code>, network off; never pushes, never sees GitHub</td><td>its worktree only</td></tr>
             <tr><td><strong>Reviewer subagent</strong></td><td>fresh <code>Agent</code> per diff</td><td>Sees only diff + issue + plan; returns correctness findings. Same reviewer for Claude and Codex diffs</td><td>coordinator</td></tr>
             <tr><td><strong>codex-dispatch</strong></td><td><code>.claude/skills/codex-dispatch/</code></td><td>The issue lifecycle around a Codex run: pre-flight, sandboxed exec, verify + secret scan, Claude pushes and opens the PR, reviewer, one fix round by session UUID, failure lanes</td><td>codex, git/gh (via coordinator)</td></tr>
@@ -360,7 +360,7 @@ sequenceDiagram
     L-->>C: description, labels, dev/NN-slug
     C->>L: gh issue edit → status/in-progress
     C->>G: worktree add .worktrees/issue-42 -b dev/42-…
-    C->>A: Agent(model: tier) — id, description, branch, worktree path
+    C->>A: Agent(subagent_type: tier-*) — id, description, branch, worktree path
     A->>G: reproduce · fix · test · commit · push
     A-->>C: report (root cause, tests, self-check)
     C->>G: gh pr create … Fixes #42<br/>gh pr review (auto-review)
@@ -442,7 +442,7 @@ sequenceDiagram
     X-->>C: exit status · session UUID · -o output
     C->>G: verify commits · run tests · secret-scan diff
     C->>G: push · gh pr create --head (ready, Codex attribution)
-    C->>R: Agent(model: sonnet | opus if Security) — PR review template
+    C->>R: Agent(tier-sonnet | tier-opus if Security) — PR review template
     R->>G: gh pr review
     opt review requests changes — once
         C->>X: codex exec … resume &lt;uuid&gt; "findings, file:line"
@@ -781,7 +781,7 @@ git worktree list    # find leftovers</pre></div>
       </div>
       <div class="callout danger">
         <strong>Do not</strong>
-        Work in the base clone. <code>git add workspace/</code> from the root. <code>rm -rf</code> a worktree. Copy a <code>.env</code> between worktrees. Touch <code>prd</code>. Put <code>DOPPLER_TOKEN</code> in a subagent's environment. Pass a full label like <code>tier/sonnet</code> into <code>model:</code> without stripping the prefix. Park an unworkable issue in <code>status/todo</code>. Dispatch with permission-skip flags. Fake a green gate. <code>env-sync</code> into a Codex worktree. Let Codex push. Resume Codex with <code>--last</code>. Push a Codex diff without the secret scan.
+        Work in the base clone. <code>git add workspace/</code> from the root. <code>rm -rf</code> a worktree. Copy a <code>.env</code> between worktrees. Touch <code>prd</code>. Put <code>DOPPLER_TOKEN</code> in a subagent's environment. Pass a full label like <code>tier/sonnet</code> as a <code>subagent_type</code>, or add a <code>model:</code> override that drops the tier agent&#39;s pinned effort. Park an unworkable issue in <code>status/todo</code>. Dispatch with permission-skip flags. Fake a green gate. <code>env-sync</code> into a Codex worktree. Let Codex push. Resume Codex with <code>--last</code>. Push a Codex diff without the secret scan.
       </div>
     </section>
 
@@ -797,9 +797,9 @@ git worktree list    # find leftovers</pre></div>
             <dt><strong>Coordinator</strong></dt><dd class="muted">The main Claude session; owns issue writes, worktrees, and the report.</dd>
             <dt><strong>Off-ramp</strong></dt><dd class="muted"><code>status/needs-input</code> (ask unworkable) or <code>status/blocked</code> (external dependency) — honest parking for a stalled issue.</dd>
             <dt><strong>BLOCKED tree</strong></dt><dd class="muted">A worktree that fails the sweep's three tests; reported, never deleted. Independent of the <code>status/blocked</code> label.</dd>
-            <dt><strong>Tier</strong></dt><dd class="muted">The model an issue needs, recorded once as <code>tier/…</code>; strip the <code>tier/</code> prefix to get the <code>model:</code> string.</dd>
+            <dt><strong>Tier</strong></dt><dd class="muted">The model an issue needs, recorded once as <code>tier/…</code>; replace the <code>/</code> with <code>-</code> to get the <code>subagent_type</code> (<code>tier-sonnet</code>), whose agent pins model and effort.</dd>
             <dt><strong>Drain</strong></dt><dd class="muted">One <code>/queue-drain</code> run: sweep → fetch → triage → plan gate → fan-out → verify → close → retro.</dd>
-            <dt><strong>Codex / tier/codex</strong></dt><dd class="muted">The OpenAI Codex CLI as implementer, opted into per ticket by a human. Not a Claude tier: maps to no <code>model:</code> string; routes to codex-dispatch.</dd>
+            <dt><strong>Codex / tier/codex</strong></dt><dd class="muted">The OpenAI Codex CLI as implementer, opted into per ticket by a human. Not a Claude tier: maps to no <code>tier-*</code> agent; routes to codex-dispatch.</dd>
             <dt><strong>codex-dispatch</strong></dt><dd class="muted">First-party skill: the issue lifecycle around a sandboxed <code>codex exec</code> — Codex commits, Claude verifies, pushes, opens the PR, reviews, and runs one fix round.</dd>
             <dt><strong>Session UUID</strong></dt><dd class="muted">Codex's session id, read from the <code>session id:</code> log line. The fix round resumes by it (never <code>--last</code>) and the issue close-out records it.</dd>
           </dl>

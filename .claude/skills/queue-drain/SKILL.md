@@ -198,7 +198,7 @@ open-ready + auto-review rule; the coordinator runs the review step itself.
 
 **Deliverables that live outside git** (a document-library project folder, a Slack
 canvas): the repo copy is canonical and goes through the PR like anything
-else; the coordinator then mirrors it by dispatching a haiku subagent that
+else; the coordinator then mirrors it by dispatching a `tier-haiku` subagent that
 calls the M365 MCP upload tool directly (subagents can), headed with the PR
 and commit it mirrors. Never retype a document through the main session, and
 never let a subagent edit a canvas — that write is the coordinator's.
