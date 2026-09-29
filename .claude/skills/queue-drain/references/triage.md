@@ -98,10 +98,10 @@ decompose, and out-of-scope tickets get "—" (no tier, no label write):
 
 | Tier | Use for |
 |---|---|
-| `tier/haiku` | Mechanical, well-specified tickets: doc/comment drift, rename, add a missing guard, one-line regex or flag fix, status/label bookkeeping. |
-| `tier/sonnet` | Ordinary bugfixes: reproduce, trace a few files, patch, run tests. This is the normal default for a well-written ticket. |
-| `tier/opus` | Only when needed: unclear root cause, cross-cutting refactor, concurrency/data-loss/security reasoning, or after a lower tier has failed. |
-| `tier/fable` | The hardest long-horizon agentic work, or opus already failed. 2x opus cost, and its turns run long — never assign it at triage without saying why in the table. |
+| `tier/haiku` | Haiku 4.5 ($1/$5). Mechanical, well-specified tickets: doc/comment drift, rename, add a missing guard, one-line regex or flag fix, status/label bookkeeping. |
+| `tier/sonnet` | Sonnet 5.5 ($2/$10). Ordinary bugfixes: reproduce, trace a few files, patch, run tests. This is the normal default for a well-written ticket. |
+| `tier/opus` | Opus 5.5 ($4/$20, 2x sonnet). Only when needed: unclear root cause, cross-cutting refactor, concurrency/data-loss/security reasoning, or after a lower tier has failed. |
+| `tier/fable` | Fable 5.1 ($10/$50, 2.5x opus). The hardest long-horizon agentic work, or opus already failed. Its turns run long — never assign it at triage without saying why in the table. |
 | `tier/codex` | Route to the OpenAI Codex CLI as implementer (codex-dispatch skill). Assign only when the user asked for Codex on this work or the issue body requests it — never derive it as a cost/difficulty judgment, and never on a `managed-platform` issue. Optionally record `codex: <model>/<effort>` in the body; default is gpt-5.6-terra/high. |
 
 **Overriding a label.** Only when it is plainly wrong for the ticket as

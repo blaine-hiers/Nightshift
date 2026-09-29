@@ -106,13 +106,15 @@ A `status/todo` issue should already carry a type and a tier — set both when y
 
 **Use the least powerful model that can do the task.** Default down, not up — escalate only when the cheaper tier visibly fails or the issue is genuinely hard. `sonnet` is the floor for real work and `fable` is a deliberate choice, never a default.
 
-| Tier | Use for |
-|---|---|
-| `haiku` | Mechanical, well-specified tickets: doc/comment drift, rename, add a missing guard, one-line regex or flag fix, status/label bookkeeping. |
-| `sonnet` | Ordinary bugfixes: reproduce, trace a few files, patch, run tests. This is the normal default for a well-written ticket. |
-| `opus` | Only when needed: unclear root cause, cross-cutting refactor, concurrency/data-loss/security reasoning, or after a lower tier has failed. |
-| `fable` | The hardest long-horizon agentic work, or opus already failed. Most capable model, but **2× opus cost** ($10/$50 per MTok vs $5/$25) and single requests can run many minutes, so the drain gives it a longer clock but only one attempt. |
-| `codex` | Not a Claude tier: routes the issue to the OpenAI Codex CLI as implementer via the `codex-dispatch` skill (Claude coordinates and reviews). Opt-in only — assign when the user asks for Codex on the work; never as a cost/difficulty derivation. |
+| Tier | Model · $/MTok in/out | Use for |
+|---|---|---|
+| `haiku` | Haiku 4.5 · $1/$5 | Mechanical, well-specified tickets: doc/comment drift, rename, add a missing guard, one-line regex or flag fix, status/label bookkeeping. |
+| `sonnet` | Sonnet 5.5 · $2/$10 | Ordinary bugfixes: reproduce, trace a few files, patch, run tests. This is the normal default for a well-written ticket. |
+| `opus` | Opus 5.5 · $4/$20 | Only when needed: unclear root cause, cross-cutting refactor, concurrency/data-loss/security reasoning, or after a lower tier has failed. Now only **2× sonnet**, so escalating a ticket that has visibly stalled on sonnet is cheap — but still not a default. |
+| `fable` | Fable 5.1 · $10/$50 | The hardest long-horizon agentic work, or opus already failed. Most capable model, but **2.5× opus cost** and single requests can run many minutes, so the drain gives it a longer clock but only one attempt. |
+| `codex` | — | Not a Claude tier: routes the issue to the OpenAI Codex CLI as implementer via the `codex-dispatch` skill (Claude coordinates and reviews). Opt-in only — assign when the user asks for Codex on the work; never as a cost/difficulty derivation. |
+
+The `model:` aliases resolve to the current model in each family, so the model column is what a tier means *today* — update it (and the ratios above) when a family ships a new version.
 
 Record the choice as the issue's `tier/…` label so the next run reads it instead of re-deriving it. The label maps to the `Agent` `model:` string by stripping the prefix: `tier/sonnet` → `model: "sonnet"`. If you escalate mid-work because the cheaper tier failed, update the label — that's the signal that keeps the tier data honest. `tier/codex` maps to no `Agent` `model:` string at all — it routes to the codex-dispatch skill instead.
 
