@@ -125,7 +125,8 @@ supported effort and say so in the issue comment.
    subagent using the PR-review template in
    `.claude/skills/queue-drain/references/prompts.md`; it posts its
    verdict with `gh pr review`. Reviewer tier follows queue-drain's
-   rule — sonnet by default, opus if the issue carries `security`;
+   rule — `tier-sonnet` by default, `tier-opus` if the issue carries
+   `security`;
    `tier/codex` itself implies nothing about reviewer tier. The Codex
    review is advisory input that always runs first; Claude's verdict
    is the one that gates the merge.

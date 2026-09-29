@@ -1,9 +1,12 @@
 # Subagent prompt templates (queue-drain stages 4-6)
 
-Fill every {placeholder}. Dispatch via the Agent tool with `model: "{tier}"`
-— the tier label with its `tier/` prefix stripped, so `tier/sonnet`
-dispatches as `model: "sonnet"`. Labels are lowercase already, so no case
-translation is needed anywhere. Never add permission-skip flags.
+Fill every {placeholder}. Dispatch via the Agent tool with
+`subagent_type: "tier-{tier}"` — the tier label with its `/` replaced by
+`-`, so `tier/sonnet` dispatches as `subagent_type: "tier-sonnet"`. The
+agent pins the model *and* its effort (`.claude/agents/`); never add a
+`model:` override, which would drop the pinned effort. Labels are lowercase
+already, so no case translation is needed anywhere. Never add
+permission-skip flags.
 
 {issue-ref} is `<repo>#<number>` (e.g. `Redline#24`).
 
@@ -63,8 +66,8 @@ translation is needed anywhere. Never add permission-skip flags.
 
 ## REVIEWER PROMPT (stage 5 — pre-PR, findings go to the implementer)
 
-Fresh subagent, sonnet by default (opus if the ticket's tier is `tier/opus`
-or `tier/fable`, or if it carries `security`). It gets ONLY what is in this
+Fresh subagent, `tier-sonnet` by default (`tier-opus` if the ticket's tier
+is `tier/opus` or `tier/fable`, or if it carries `security`). It gets ONLY what is in this
 prompt — never the implementer's transcript.
 
     You are reviewing a diff for correctness. You did not write it.

@@ -11,6 +11,7 @@ Nightshift is not a software project. It is the **main working environment** for
 Nightshift never tracks the code of the repos being worked on — only the skills and docs that encode the workflow.
 
 - `.claude/skills/` — the workflow, as skills (tracked)
+- `.claude/agents/` — one `tier-*` subagent per model tier, pinning model and effort (tracked)
 - `docs/` — reference: `workspace.md`, `skills.md`, `pipeline.html` (flowchart map of the whole workflow), `templates/app-doc-template.html` (themed, diagram-driven "how this app works" doc template used to write one per target repo), `runs/` (run reports), `superpowers/` (plans, specs, research)
 - `workspace/<repo-name>/` — cloned target repos (gitignored, never tracked)
 - `.env.example` — master env schema, names only (see *Worktrees, Teardown, and Secrets*)
@@ -57,7 +58,7 @@ Beyond status, every issue carries a type and a tier. `security` is the only opt
 | **`tier/…`** (exclusive) | `tier/haiku`, `tier/sonnet`, `tier/opus`, `tier/fable`, `tier/codex` | The model tier (see *Prompt and Model Selection*), recorded once instead of re-derived per run. |
 | **`security`** | — | Credential handling, secret redaction, data exposure, access-tier classification. Seeds `variant-analysis` sweeps. |
 
-Label names are lowercase and are used verbatim as `Agent` `model:` strings after stripping the `tier/` prefix — `tier/sonnet` → `model: "sonnet"`. No case translation is needed anywhere.
+Label names are lowercase and map verbatim to `Agent` `subagent_type:` strings by replacing the `/` with `-` — `tier/sonnet` → `subagent_type: "tier-sonnet"`. No case translation is needed anywhere.
 
 A `status/todo` issue should already carry a type and a tier — set both when you file it, so the drain reads a decision instead of making one. A missing label is not a blocker: triage derives it and writes it back with `gh issue edit --add-label`.
 
@@ -114,13 +115,22 @@ A `status/todo` issue should already carry a type and a tier — set both when y
 | `fable` | Fable 5.1 · $10/$50 | The hardest long-horizon agentic work, or opus already failed. Most capable model, but **2.5× opus cost** and single requests can run many minutes, so the drain gives it a longer clock but only one attempt. |
 | `codex` | — | Not a Claude tier: routes the issue to the OpenAI Codex CLI as implementer via the `codex-dispatch` skill (Claude coordinates and reviews). Opt-in only — assign when the user asks for Codex on the work; never as a cost/difficulty derivation. |
 
-The `model:` aliases resolve to the current model in each family, so the model column is what a tier means *today* — update it (and the ratios above) when a family ships a new version.
+**Each tier is a project agent** in `.claude/agents/tier-<tier>.md` that pins both the model and its reasoning effort — the `Agent` tool takes no effort parameter, so the agent definition is the only place effort can be set per tier:
 
-Record the choice as the issue's `tier/…` label so the next run reads it instead of re-deriving it. The label maps to the `Agent` `model:` string by stripping the prefix: `tier/sonnet` → `model: "sonnet"`. If you escalate mid-work because the cheaper tier failed, update the label — that's the signal that keeps the tier data honest. `tier/codex` maps to no `Agent` `model:` string at all — it routes to the codex-dispatch skill instead.
+| Agent | `model` | `effort` | Why |
+|---|---|---|---|
+| `tier-haiku` | haiku | — | Haiku 4.5 has no effort control. |
+| `tier-sonnet` | sonnet | `medium` | Sonnet 5.5's recalibrated levels; `medium` is the recommended start for agentic coding. |
+| `tier-opus` | opus | `high` | Opus 5.5 defaults to `medium`; the hard tier gets the old `high` back. |
+| `tier-fable` | fable | `high` | Deliberate, long-horizon work; `xhigh`/`max` only once a measured run shows headroom. |
+
+The `model` aliases resolve to the current model in each family, so the model column is what a tier means *today* — update it (and the ratios above) when a family ships a new version, and revisit the agent's `effort` at the same time, since defaults and level calibration move between versions. Never pass `model:` alongside `subagent_type:` — a per-call `model` overrides the agent's and silently drops you back to that model's default effort.
+
+Record the choice as the issue's `tier/…` label so the next run reads it instead of re-deriving it. The label maps to the `Agent` `subagent_type:` string by replacing the `/` with `-`: `tier/sonnet` → `subagent_type: "tier-sonnet"`. If you escalate mid-work because the cheaper tier failed, update the label — that's the signal that keeps the tier data honest. `tier/codex` maps to no agent at all — it routes to the codex-dispatch skill instead.
 
 ### Multiple Tickets at Once
 
-**Which path — provenance, not count.** Tickets you named in conversation get dispatched by hand: choosing them *was* the triage. Work that comes off the todo queue goes to `/queue-drain` instead, even for a single ticket — the sweep, the off-ramps, and the run report are the whole point. Past ~4 hand-picked tickets, drain anyway; at that size the WIP cap and the report earn their keep. Dispatching by hand means **one subagent per ticket** rather than working them serially, each with the model tier that ticket actually needs (`Agent` with `model: "haiku" | "sonnet" | "opus" | "fable"`). Launch independent ones in a single message so they run concurrently.
+**Which path — provenance, not count.** Tickets you named in conversation get dispatched by hand: choosing them *was* the triage. Work that comes off the todo queue goes to `/queue-drain` instead, even for a single ticket — the sweep, the off-ramps, and the run report are the whole point. Past ~4 hand-picked tickets, drain anyway; at that size the WIP cap and the report earn their keep. Dispatching by hand means **one subagent per ticket** rather than working them serially, each with the model tier that ticket actually needs (`Agent` with `subagent_type: "tier-haiku" | "tier-sonnet" | "tier-opus" | "tier-fable"`). Launch independent ones in a single message so they run concurrently.
 
 - One subagent = one GitHub issue. Give it the issue reference (`<repo>#<n>`), the issue body verbatim, its branch name, and the **worktree path** you created for it.
 - Set the model per ticket, not per batch: three doc-drift tickets go to `haiku` even if a fourth ticket in the same batch needs `opus`.

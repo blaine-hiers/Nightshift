@@ -26,7 +26,7 @@ if [ -z "$REPO" ]; then
 fi
 
 # name|colour|description — the taxonomy CLAUDE.md defines.
-# Status is exclusive; tier maps to an Agent model: string by stripping "tier/".
+# Status is exclusive; tier maps to an Agent subagent_type by replacing "/" with "-".
 LABELS='status/backlog|ededed|Filed, not yet ready to work
 status/needs-input|fbca04|Ask isnt yet a workable prompt
 status/todo|0e8a16|An agent can start right now with zero questions
