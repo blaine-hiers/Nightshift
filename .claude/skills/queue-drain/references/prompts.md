@@ -121,7 +121,7 @@ prompt — never the implementer's transcript.
   to the batch as a whole.
 - **Fable tickets get no attempt 2, and only one runs at a time.** Findings
   on a fable diff go to a human, not back to the implementer; a second run at
-  2x opus rates on an unchanged prompt is the pipeline's most expensive way to
+  2.5x opus rates on an unchanged prompt is the pipeline's most expensive way to
   learn nothing. The max-1-concurrent rule sits inside the WIP cap of 5, so a
   wave may hold one fable ticket plus four others.
 
