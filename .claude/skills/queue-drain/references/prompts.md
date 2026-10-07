@@ -51,6 +51,10 @@ permission-skip flags.
       Co-Authored-By trailer"}) on every commit, including attempt 2.
     - Doppler: only if instructed in this prompt; then `npm run env-sync`
       in the worktree, dev config only; if .env says prd, stop and report.
+    - Scratch files: name them `issue{issue-number}-*` and keep them inside
+      the worktree's ignored build dir or the session scratchpad, by
+      absolute path. Parallel agents share the scratchpad — a generic name
+      like `pr.md` gets overwritten by another ticket's agent.
 
     Your report is read by the coordinator and copied into issue comments
     and PR bodies. NEVER put a real credential value, a real person's full
@@ -89,6 +93,9 @@ prompt — never the implementer's transcript.
     notification side effects (desktop toasts, Slack/webhook alerts) in
     every probe, because a failure path you trigger will otherwise fire them
     at the human.
+    Throwaway probes and backups go inside the worktree (then deleted) or the
+    session scratchpad, by absolute path — never a relative `cp`/`>` from a
+    shell whose cwd you haven't checked; it lands in the parent directory.
     Verify by RUNNING, not reading: execute the tests, reproduce each
     claimed behaviour, and probe the edge cases with throwaway scripts in
     the worktree (never push, never call a live API, never launch a real

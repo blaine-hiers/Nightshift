@@ -142,4 +142,20 @@ git update-ref refs/heads/test/issue-6 "$NEWCOMM"
 OUT="$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.fetch        GIT_CONFIG_VALUE_0=+refs/heads/no-such-branch:refs/remotes/origin/no-such-branch        bash "$SWEEP" "$TMP/base" --skip-pr-check | grep issue-6)"
 assert_contains "$OUT" "fetch-failed" "remote moved on but fetch failed is BLOCKED fetch-failed"
 
+# T14: leftover dirs that aren't worktrees (Windows leaves an empty one behind
+# when a shell is still cd'd into a tree during `git worktree remove`). Without
+# the .git check, `git -C` resolves to the base clone and misreports them.
+mkdir -p "$TMP/base/.worktrees/leftover-empty" "$TMP/base/.worktrees/leftover-full"
+echo junk > "$TMP/base/.worktrees/leftover-full/x.txt"
+OUT="$(bash "$SWEEP" "$TMP/base" --skip-pr-check)"
+assert_contains "$OUT" "ORPHAN $TMP/base/.worktrees/leftover-empty" "empty non-worktree dir is ORPHAN"
+assert_contains "$OUT" "BLOCKED $TMP/base/.worktrees/leftover-full not-a-worktree" "non-empty non-worktree dir is BLOCKED not-a-worktree"
+[ -d "$TMP/base/.worktrees/leftover-empty" ] && echo "ok   - ORPHAN kept without --remove" \
+  || { echo "FAIL - ORPHAN kept without --remove"; FAILS=$((FAILS+1)); }
+bash "$SWEEP" "$TMP/base" --skip-pr-check --remove >/dev/null 2>&1
+[ ! -d "$TMP/base/.worktrees/leftover-empty" ] && echo "ok   - --remove deletes an empty ORPHAN" \
+  || { echo "FAIL - --remove deletes an empty ORPHAN"; FAILS=$((FAILS+1)); }
+[ -f "$TMP/base/.worktrees/leftover-full/x.txt" ] && echo "ok   - --remove never touches a non-empty leftover" \
+  || { echo "FAIL - --remove never touches a non-empty leftover"; FAILS=$((FAILS+1)); }
+
 echo; if [ "$FAILS" -eq 0 ]; then echo "ALL PASS"; else echo "$FAILS FAILURES"; exit 1; fi
