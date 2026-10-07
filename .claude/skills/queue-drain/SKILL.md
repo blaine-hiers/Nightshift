@@ -53,6 +53,17 @@ review; they never write to an issue.
   `isolation: "worktree"` (it worktrees Nightshift, not the target repo).
 - Honest failure is a valid output. Never fake a green gate.
 
+## Pausing a run
+When the human pauses mid-run, start nothing new. Let in-flight subagents
+report, then comment each unfinished ticket's exact state on its issue:
+branch, commits, review verdicts, and the remaining steps in order. The
+issue comment is the resume point, not this session's memory. Those tickets
+stay `status/in-progress` with their worktrees kept, because they are
+mid-flight and not stalled. A scheduled resume (`CronCreate`) lives only as
+long as the session, so tell the human it dies if the session closes, and
+that "resume the drain" restarts from the issue comments. The retro still
+runs once, at the real end of the run.
+
 ## Stages
 
 ### 0. SWEEP
