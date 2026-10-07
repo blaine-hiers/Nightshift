@@ -17,6 +17,15 @@ every one; the reviewer will.
   Re-pin with `packwiz -y mr add --project-id <pid> --version-id <vid>`.
 - **Modrinth Maven has the same collision**: `maven.modrinth:<slug>:<version_number>`
   silently resolves to whichever file was uploaded last. Pin dev deps by **version id**.
+- **Modrinth's tags don't prove the jar loads.** Download every new jar and check
+  `META-INF/neoforge.mods.toml` exists and has a `modLoader =` line. Structory Towers
+  (every NeoForge 1.21.1 build) ships without one; NeoForge rejects the file, the
+  whole mod state breaks, and the crash report blames an innocent mod (Sodium:
+  "config could not be found"). Language providers (Kotlin for Forge) are exempt.
+  The first `FATAL` in `logs/latest.log`, not the crash report, names the culprit.
+- **`side = "server"` mods never reach singleplayer.** The client export omits them,
+  and singleplayer's integrated server runs from the client install. Use `both` for
+  anything that should work in singleplayer.
 - Odd filenames are not proof of a mis-pin (Structory ships `…26.2_v1.3.7.jar` for
   1.3.17): trust the version id + mods.toml ranges.
 
