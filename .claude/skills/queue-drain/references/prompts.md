@@ -40,6 +40,10 @@ permission-skip flags.
     - Never descope an acceptance criterion to fit the budget. If you
       can't build all of it, report RESULT: failed and list what's left.
       A "done" that quietly drops the core ask costs a full extra round.
+    - Generated artifacts (snapshots, fixtures, data files) must be the
+      output of a clean run of the committed code. Never hand-patch or
+      post-filter them offline after the run; change the generator, then
+      re-run it.
     - Commit in the worktree (short imperative subject, referencing
       #{issue-number}). Do NOT push, do NOT open a PR, do NOT comment on
       or edit the issue — the coordinator owns those.
@@ -162,7 +166,10 @@ stage-5 reviewer's transcript.
        GitHub refuses `--request-changes` (and `--approve`) on a PR the
        same account authored, which is every PR this pipeline opens. When
        it does, post `--comment` instead with the first line
-       `Verdict: changes requested` — never drop the review.
+       `Verdict: changes requested` — never drop the review. Post it
+       exactly ONCE: `gh pr review` can succeed while printing nothing, so
+       check `gh pr view {pr-number} -R {owner/repo} --json reviews` before
+       any retry, or the PR collects duplicate reviews.
        Body: verdict line, test counts, then each finding as
        `file:line — what breaks — how to reproduce`. Flag HIGH-RISK
        changes (CI/workflow, hooks, permissions, credential handling)

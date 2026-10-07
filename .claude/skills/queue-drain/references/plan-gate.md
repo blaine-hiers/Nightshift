@@ -32,6 +32,15 @@ on (fail-open vs fail-closed, revert vs keep, drop vs relocate) in the
 question text and make it the option labels — an "Approve" that hides a
 baked-in decision is the rubber stamp this rule exists to prevent.
 
+When the decision is a **factual value** (a hardware limit, a price, a
+constant), the planner must cite its source or mark it `UNVERIFIED`, and the
+question text says which. The human is choosing between numbers, and an
+unsourced number looks exactly like a sourced one. If the implementer later
+finds the value wrong, the coordinator re-asks the human with the new
+evidence before the PR opens; it never silently keeps or swaps the value.
+(2026-10-06: a planner's unsourced "DGX Spark 75% allocatable" was approved,
+then contradicted by NVIDIA staff during implementation and re-decided at 93%.)
+
 - **Approve** → `gh issue comment` the plan onto the issue, prefix
   "Approved plan (queue-drain):". Ticket joins fan-out; the plan comment
   is part of the implementer's prompt.
