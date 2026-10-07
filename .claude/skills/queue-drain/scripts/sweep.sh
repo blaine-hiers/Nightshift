@@ -27,6 +27,20 @@ for wt in "$WT_ROOT"/*/; do
   [ -d "$wt" ] || continue
   wt="${wt%/}"
 
+  # 0. a real worktree? A leftover directory (Windows leaves one behind when
+  # `git worktree remove` can't delete a folder some shell is still cd'd into)
+  # has no .git file, so `git -C` would silently resolve to the BASE clone and
+  # misreport it. Empty leftovers are safe to delete; anything else is reported.
+  if [ ! -e "$wt/.git" ]; then
+    if [ -z "$(ls -A "$wt" 2>/dev/null)" ]; then
+      echo "ORPHAN $wt empty-leftover-dir"
+      [ "$REMOVE" -eq 1 ] && { rmdir "$wt" 2>/dev/null || echo "WARN $wt rmdir-failed (still in use)" >&2; }
+    else
+      echo "BLOCKED $wt not-a-worktree (non-empty leftover; inspect by hand)"
+    fi
+    continue
+  fi
+
   # 1. clean?
   if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
     echo "BLOCKED $wt dirty"; continue
